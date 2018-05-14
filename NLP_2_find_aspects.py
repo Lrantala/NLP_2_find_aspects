@@ -31,21 +31,32 @@ def save_file(file, name):
 def read_sentences(file):
     list_of_nouns = []
     sentences = file["lemma_pos"]
+    # Start going through every row in the list
     for row in sentences:
         row_of_nouns = []
+        # Go through every tuple pair in the row to find nouns. Add them
+        # and possibly the previous or next tuple to the list.
         for i, pair in enumerate(row):
             if pair[1] == "NOUN":
-                row_of_nouns.extend((str(i),pair[0], pair[1]))
-                if i+1 < len(row):
-                    next_pair = row[i+1]
-                    row_of_nouns.extend((str(i+1), next_pair[0], next_pair[1]))
-                if i >= 1:
-                    previous_pair = row[i-1]
-                    row_of_nouns.extend((str(i-1), previous_pair[0], previous_pair[1]))
+                # if i >= 1:
+                #     previous_pair = row[i-1]
+                #     if previous_pair[1] == "NOUN":
+                #         row_of_nouns.extend((str(i-1), previous_pair[0], previous_pair[1]))
+
+                if (row_of_nouns[:-1] != pair[1]) and (row_of_nouns[:-2] != pair[0]):
+                    row_of_nouns.extend((str(i),pair[0], pair[1]))
+
+                # if i+1 < len(row):
+                #     next_pair = row[i+1]
+                #     if next_pair[1] == "NOUN":
+                #         row_of_nouns.extend((str(i+1), next_pair[0], next_pair[1]))
             elif pair[1] == "PUNCT":
-                list_of_nouns.extend([row_of_nouns])
+                #Add current list to upper list (if it is not empty) and reset the current list.
+                if row_of_nouns:
+                    list_of_nouns.extend([row_of_nouns])
                 row_of_nouns  = []
-        list_of_nouns.extend([row_of_nouns])
+        if row_of_nouns:
+            list_of_nouns.extend([row_of_nouns])
         # print(row)
     print(list_of_nouns)
 
