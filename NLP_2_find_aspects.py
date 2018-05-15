@@ -78,6 +78,7 @@ def find_nouns_adjectives(file):
 
 
 def group_nouns(raw_list):
+    list_by_sentence = []
     list_of_grouped_nouns = []
     for sentence in raw_list:
         inclusion_check = False
@@ -85,33 +86,43 @@ def group_nouns(raw_list):
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
                 next_word = sentence[i+1]
+                # This part checks for tri-grams
                 if i+2 < len(sentence):
                     subsequent_word = sentence[i+2]
                     if (int(subsequent_word[0]) - int(next_word[0])) == 1 and (int(next_word[0]) - int(word[0])) == 1:
-                        list_of_grouped_nouns.append([(word[1] + " " + next_word[1] + " " + subsequent_word[1])])
-                        inclusion_check = True
+                        if (subsequent_word[2] == "NOUN") and (next_word[2] == "NOUN") and (word[2] == "NOUN"):
+                            list_of_grouped_nouns.append([(word[1] + " " + next_word[1] + " " + subsequent_word[1])])
+                            inclusion_check = True
                 if i+2 >= len(sentence):
                     inclusion_check = False
+            # This part checks for bigrams
             if inclusion_check == False and (int(next_word[0]) - int(word[0])) == 1:
                     if (next_word[2] == "NOUN") and (word[2] == "NOUN"):
                         list_of_grouped_nouns.append([(word[1] + " " + next_word[1])])
                         inclusion_check = True
+            #This part is for unigrams
             if inclusion_check == False and (word[2] == "NOUN"):
                     list_of_grouped_nouns.append([word[1]])
             # else:
             #     if word[2] == "NOUN":
             #         list_of_grouped_nouns.append([word[1]])
-    print(list_of_grouped_nouns)
+        # This creates every sentence as its own list of lists
+        # list_by_sentence.append(list_of_grouped_nouns)
+        # list_of_grouped_nouns = []
+
+    # This returns a list, where evey noun is its own list
+    return list_of_grouped_nouns
+    # return list_by_sentence
 
 
 def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.debug("Entering main")
     df = open_file("Sample10.csv")
-    raw_list_of_nouns_adjectives = find_nouns_adjectives(df)
+    raw_list_of_nouns_adjectives = find_nouns_adjectives(df.head(20))
     print(type(raw_list_of_nouns_adjectives))
-    group_nouns(raw_list_of_nouns_adjectives)
-
+    listed_nouns = group_nouns(raw_list_of_nouns_adjectives)
+    print(listed_nouns)
 
 if __name__ == '__main__':
     main()
