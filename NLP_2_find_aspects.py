@@ -85,7 +85,8 @@ def assign_vad_scores(noun_phrases, score_list):
                 # The way to access the word in the list is through phrase[i][0]
                 score = [item for item in score_list if phrase[i][0] in item]
                 if len(score) != 0:
-                    phrase_scores.append(score)
+                    # The * ensures that only the list contents from score are returned
+                    phrase_scores.append(*score)
                 else:
                     phrase_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
                 i += 1
