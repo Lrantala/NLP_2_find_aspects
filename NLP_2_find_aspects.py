@@ -4,7 +4,6 @@ import pandas as pd
 pd.options.mode.chained_assignment = None
 import logging
 import csv
-import numpy as np
 import os
 
 COMBINATIONS4 = [("JJ", "NN","NN", "NN"),("RB", "JJ","NN", "NN"),("JJ", "JJ","NN", "NN"),("RB","JJ","JJ","NN"),("JJ","CC", "JJ", "NN")]
@@ -37,44 +36,6 @@ def save_file(file, name):
     except IOError as exception:
         print("Couldn't save the file. Encountered an error: %s" % exception)
     logging.debug("Finished writing: " + name)
-
-
-def group_nouns(raw_list):
-    list_by_sentence = []
-    list_of_grouped_nouns = []
-    for sentence in raw_list:
-        inclusion_check = False
-        print(sentence)
-        for i, word in enumerate(sentence):
-            if i+1 < len(sentence):
-                next_word = sentence[i+1]
-                # This part checks for tri-grams
-                if i+2 < len(sentence):
-                    subsequent_word = sentence[i+2]
-                    if (int(subsequent_word[0]) - int(next_word[0])) == 1 and (int(next_word[0]) - int(word[0])) == 1:
-                        if (subsequent_word[2] == "NOUN") and (next_word[2] == "NOUN") and ((word[2] == "NOUN") or (word[2] == "ADJ")):
-                            list_of_grouped_nouns.append([(word[1] + " " + next_word[1] + " " + subsequent_word[1])])
-                            inclusion_check = True
-                if i+2 >= len(sentence):
-                    inclusion_check = False
-            # This part checks for bigrams
-            if inclusion_check == False and (int(next_word[0]) - int(word[0])) == 1:
-                    if (next_word[2] == "NOUN") and ((word[2] == "NOUN") or (word[2] == "ADJ")):
-                        list_of_grouped_nouns.append([(word[1] + " " + next_word[1])])
-                        inclusion_check = True
-            #This part is for unigrams
-            if inclusion_check == False and (word[2] == "NOUN"):
-                    list_of_grouped_nouns.append([word[1]])
-            # else:
-            #     if word[2] == "NOUN":
-            #         list_of_grouped_nouns.append([word[1]])
-        # This creates every sentence as its own list of lists
-        # list_by_sentence.append(list_of_grouped_nouns)
-        # list_of_grouped_nouns = []
-
-    # This returns a list, where evey noun is its own list
-    return list_of_grouped_nouns
-    # return list_by_sentence
 
 
 def new_find_noun_phrases(raw_list):
@@ -113,6 +74,7 @@ def new_find_noun_phrases(raw_list):
 
 
 def assign_vad_scores(noun_phrases, score_list):
+    logging.debug("Entering assign vad scores")
     phrase_scores = []
     all_scores = []
     for x in noun_phrases:
@@ -124,6 +86,8 @@ def assign_vad_scores(noun_phrases, score_list):
                 score = [item for item in score_list if phrase[i][0] in item]
                 if len(score) != 0:
                     phrase_scores.append(score)
+                else:
+                    phrase_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
                 i += 1
         if len(phrase_scores) != 0:
             all_scores.append(phrase_scores)
@@ -157,6 +121,13 @@ def new_format_tags(tagged_texts):
         formatted_list = []
     return formatted_list_by_sentence
 
+
+# def lemmatize_words(phrase_list):
+#     logging.debug("Entering lemmatization")
+#     for x in phrase_list:
+#         for phrase in x:
+#             print(phrase)
+
 def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.debug("Entering main")
@@ -174,12 +145,8 @@ def main():
     df["formatted"] = new_format_tags(tagged_texts)
     noun_phrases = new_find_noun_phrases(df["formatted"])
 
-    # for x in noun_phrases:
-    #     print(x)
-
     warriner_scores = open_file("Short_Warriner.csv", "warriner")
     zipped_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"], warriner_scores["dominance"]))
-    # print(zipped_scores[0][0])
 
     short_nouns = noun_phrases[:10]
     assign_vad_scores(short_nouns, zipped_scores)
