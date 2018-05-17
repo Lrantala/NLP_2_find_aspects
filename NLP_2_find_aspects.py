@@ -34,55 +34,6 @@ def save_file(file, name):
     logging.debug("Finished writing: " + name)
 
 
-def find_nouns_adjectives(file):
-    logging.debug("Entering finding nouns and asjectives")
-    list_of_nouns_adjectives = []
-    sentences = file["lemma_pos"]
-    # Start going through every row in the list
-    for row in sentences:
-        row_of_words = []
-        # Go through every tuple pair in the row to find nouns. Add them
-        # and possibly the previous or next tuple to the list.
-        for i, pair in enumerate(row):
-            if pair[1] == "NOUN":
-                # if i >= 1:
-                #     previous_pair = row[i-1]
-                #     if previous_pair[1] == "NOUN":
-                #         row_of_nouns.append((str(i-1), previous_pair[0], previous_pair[1]))
-
-                # Doesn't work if (row_of_nouns[:-1] != pair[1]) and (row_of_nouns[:-2] != pair[0]):
-                row_of_words.append((str(i),pair[0], pair[1]))
-
-                # if i+1 < len(row):
-                #     next_pair = row[i+1]
-                #     if next_pair[1] == "NOUN":
-                #         row_of_nouns.extend((str(i+1), next_pair[0], next_pair[1]))
-
-            if pair[1] == "ADJ" and pair[0] != "which" and pair[0] != "what":
-                if i >= 1:
-                    previous_pair = row[i-1]
-                    if previous_pair[1] == "ADV":
-                        row_of_words.append((str(i-1), previous_pair[0], previous_pair[1]))
-
-                # Doesn't work if (row_of_nouns[:-1] != pair[1]) and (row_of_nouns[:-2] != pair[0]):
-                row_of_words.append((str(i),pair[0], pair[1]))
-
-                # if i+1 < len(row):
-                #     next_pair = row[i+1]
-                #     if next_pair[1] == "NOUN":
-                #         row_of_nouns.extend((str(i+1), next_pair[0], next_pair[1]))
-
-            elif pair[1] == "PUNCT":
-                #Add current list to upper list (if it is not empty) and reset the current list.
-                if row_of_words:
-                    list_of_nouns_adjectives.extend([row_of_words])
-                row_of_words  = []
-        if row_of_words:
-            list_of_nouns_adjectives.extend([row_of_words])
-        # print(row)
-    return list_of_nouns_adjectives
-
-
 def group_nouns(raw_list):
     list_by_sentence = []
     list_of_grouped_nouns = []
@@ -127,7 +78,6 @@ def new_find_noun_phrases(raw_list):
     list_of_grouped_words = []
     for sentence in raw_list:
         inclusion_check = False
-        # print(sentence)
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
                 first_word = sentence[i]
@@ -135,9 +85,6 @@ def new_find_noun_phrases(raw_list):
                     next_word = sentence[i+1]
                 # This part checks for tri-grams
                 if any(next_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
-
-
-
                     if i+2 < len(sentence):
                         subsequent_word = sentence[i + 2]
                         for x1, x2, x3 in COMBINATIONS3:
@@ -152,23 +99,12 @@ def new_find_noun_phrases(raw_list):
                         if x1 == first_word[1] and x2 == next_word[1]:
                             list_of_grouped_words.append((first_word, next_word))
                             inclusion_check = True
-                            #print(sentence)
-                        #print(first_word + next_word)
-            # This part checks for bigrams
-            # if inclusion_check == False:
-            #         if (next_word[2] == "NOUN") and ((word[2] == "NOUN") or (word[2] == "ADJ")):
-            #             list_of_grouped_nouns.append([(word[1] + " " + next_word[1])])
-            #             inclusion_check = True
-            # #This part is for unigrams
-            # if inclusion_check == False and (word[2] == "NOUN"):
-            #         list_of_grouped_nouns.append([word[1]])
         # This creates every sentence as its own list of lists
         if len(list_of_grouped_words) != 0:
             list_of_noun_phrases.append(list_of_grouped_words)
         list_of_grouped_words = []
     # This returns a list, where evey noun is its own list
     return list_of_noun_phrases
-    # return list_by_sentence
 
 
 def assign_vad_scores(raw_list):
