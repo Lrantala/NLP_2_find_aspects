@@ -14,11 +14,16 @@ ADJECTIVES = ["JJ", "JJR", "JJS"]
 NOUNS = ["NN", "NNP", "NNPS", "NNS"]
 ADVERBS = ["RB", "RBR", "RBS"]
 
-def open_file(file):
-    logging.debug("Entering open file")
-    raw_table = pd.read_csv(file, sep=';', encoding='utf-8')
+def open_file(file, type):
+    if type == "warriner":
+        logging.debug("Entering open file warriner")
+        raw_table = pd.read_csv(file, sep=',', encoding='utf-8')
+    else:
+        logging.debug("Entering open file pandas")
+        raw_table = pd.read_csv(file, sep=';', encoding='utf-8')
     # This transforms the csv-string back to a list
-    raw_table['lemma_tag_dep'] = raw_table['lemma_tag_dep'].map(ast.literal_eval)
+        if 'lemma_tag_dep' in raw_table:
+            raw_table['lemma_tag_dep'] = raw_table['lemma_tag_dep'].map(ast.literal_eval)
     return raw_table
 
 
@@ -107,8 +112,25 @@ def new_find_noun_phrases(raw_list):
     return list_of_noun_phrases
 
 
-def assign_vad_scores(raw_list):
-    pass
+def assign_vad_scores(noun_phrases, score_list):
+    phrase_scores = []
+    all_scores = []
+    for x in noun_phrases:
+        for phrase in x:
+            print(phrase)
+            i = 0
+            while i < len(phrase):
+                # The way to access the word in the list is through phrase[i][0]
+                score = [item for item in score_list if phrase[i][0] in item]
+                if len(score) != 0:
+                    phrase_scores.append(score)
+                i += 1
+        if len(phrase_scores) != 0:
+            all_scores.append(phrase_scores)
+        phrase_scores = []
+    print(all_scores)
+    # The first number in the score list is the number of the word, the second one is [0]
+    # for name, [1] for valence, [2] for arousal, [3] for dominance
 
 
 def new_format_tags(tagged_texts):
@@ -138,8 +160,8 @@ def new_format_tags(tagged_texts):
 def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.debug("Entering main")
-    df = open_file("Sample10.csv")
-    warriner_scores = []
+    df = open_file("Sample10.csv", "pandas")
+
 
     # Old version
     #raw_list_of_nouns_adjectives = find_nouns_adjectives(df.head(20))
@@ -151,8 +173,16 @@ def main():
     tagged_texts = df["lemma_tag_dep"]
     df["formatted"] = new_format_tags(tagged_texts)
     noun_phrases = new_find_noun_phrases(df["formatted"])
-    for x in noun_phrases:
-        print(x)
+
+    # for x in noun_phrases:
+    #     print(x)
+
+    warriner_scores = open_file("Short_Warriner.csv", "warriner")
+    zipped_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"], warriner_scores["dominance"]))
+    # print(zipped_scores[0][0])
+
+    short_nouns = noun_phrases[:10]
+    assign_vad_scores(short_nouns, zipped_scores)
 
     # new_find_noun_phrases(tagged_texts.head())
     # for row in tagged_texts.head():
