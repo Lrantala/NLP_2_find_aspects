@@ -7,8 +7,9 @@ import csv
 import numpy as np
 import os
 
-NOUN_PHRASE_COMBINATIONS = [(("NN", "compound"),("NN", "dobj")), (("DT", "det"),("NN", "pobj")), (("JJ", "amod"), ("NN", "attr"))]
-COMBINATIONS2 = [("NN", "NN"), ("DT", "NN"), ("JJ", "NN"), ("RB", "JJ")]
+COMBINATIONS4 = [("JJ", "NN","NN", "NN"),("RB", "JJ","NN", "NN"),("JJ", "JJ","NN", "NN"),("RB","JJ","JJ","NN"),("JJ","CC", "JJ", "NN")]
+COMBINATIONS3 = [("NN","NN", "NN"),("JJ","NN", "NN"),("RB","JJ","NN"),("JJ","JJ", "NN"), ("NN", "CC", "NN")]
+COMBINATIONS2 = [("NN", "NN"), ("JJ", "NN")]
 ADJECTIVES = ["JJ", "JJR", "JJS"]
 NOUNS = ["NN", "NNP", "NNPS", "NNS"]
 ADVERBS = ["RB", "RBR", "RBS"]
@@ -122,20 +123,37 @@ def group_nouns(raw_list):
 
 def new_find_noun_phrases(raw_list):
     logging.debug("Entering find noun phrases")
-    list_by_sentence = []
-    list_of_grouped_nouns = []
+    list_of_noun_phrases = []
+    list_of_grouped_words = []
     for sentence in raw_list:
         inclusion_check = False
         # print(sentence)
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
                 first_word = sentence[i]
-                if any(first_word[1] in adj for adj in ADJECTIVES + NOUNS + ADVERBS):
+                if any(first_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                     next_word = sentence[i+1]
-                    for pair1, pair2 in COMBINATIONS2:
-                        if pair1 == first_word[1] and pair2 == next_word[1]:
+                # This part checks for tri-grams
+                if any(next_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
+
+
+
+                    if i+2 < len(sentence):
+                        subsequent_word = sentence[i + 2]
+                        for x1, x2, x3 in COMBINATIONS3:
+                            if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1]:
+                                list_of_grouped_words.append((first_word, next_word, subsequent_word))
+                                inclusion_check = True
+                    if i+2 >= len(sentence):
+                        inclusion_check = False
+                # This part checks for bigrams
+                if not inclusion_check:
+                    for x1, x2 in COMBINATIONS2:
+                        if x1 == first_word[1] and x2 == next_word[1]:
+                            list_of_grouped_words.append((first_word, next_word))
+                            inclusion_check = True
                             #print(sentence)
-                            print(first_word + next_word)
+                        #print(first_word + next_word)
             # This part checks for bigrams
             # if inclusion_check == False:
             #         if (next_word[2] == "NOUN") and ((word[2] == "NOUN") or (word[2] == "ADJ")):
@@ -144,9 +162,12 @@ def new_find_noun_phrases(raw_list):
             # #This part is for unigrams
             # if inclusion_check == False and (word[2] == "NOUN"):
             #         list_of_grouped_nouns.append([word[1]])
-
+        # This creates every sentence as its own list of lists
+        if len(list_of_grouped_words) != 0:
+            list_of_noun_phrases.append(list_of_grouped_words)
+        list_of_grouped_words = []
     # This returns a list, where evey noun is its own list
-    # return list_of_grouped_nouns
+    return list_of_noun_phrases
     # return list_by_sentence
 
 
@@ -193,7 +214,9 @@ def main():
     # This creates a new column, where the tags are shortened to basic forms.
     tagged_texts = df["lemma_tag_dep"]
     df["formatted"] = new_format_tags(tagged_texts)
-    new_find_noun_phrases(df["formatted"])
+    noun_phrases = new_find_noun_phrases(df["formatted"])
+    for x in noun_phrases:
+        print(x)
 
     # new_find_noun_phrases(tagged_texts.head())
     # for row in tagged_texts.head():
