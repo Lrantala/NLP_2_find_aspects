@@ -101,9 +101,8 @@ def assign_vad_scores(noun_phrases, score_list):
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
 
-def calculate_new_vad_scores(noun_phrases, original_phrases):
+def calculate_new_vad_scores(noun_phrases):
     phrase_scores = []
-    original_phrase = []
     for phrase in noun_phrases:
         new_word = []
         valence = []
@@ -120,20 +119,6 @@ def calculate_new_vad_scores(noun_phrases, original_phrases):
         new_dominance = float(format(sum(dominance)/len(dominance), '.2f'))
         phrase_scores.append((new_string, str(new_valence), str(new_arousal), str(new_dominance)))
     df_scores = pd.DataFrame.from_records(phrase_scores, columns=("word", "valence", "arousal", "dominance"))
-    print("VAD:")
-    print(len(df_scores["word"]))
-    for sentences in original_phrases:
-        new_word2 = []
-        for word2 in sentences:
-            new_word2.append(word2[0])
-        new_string2 = ' '.join(new_word2).lower()
-        original_phrase.append(new_string2)
-    labels = ["word", "valence", "arousal", "dominance", "original sentence"]
-    orig_series = pd.Series(original_phrase)
-    print("Orig sent:")
-    print(len(orig_series))
-
-    df_scores["original_sentence"] = orig_series.values
     return df_scores
 
 def new_format_tags(tagged_texts):
@@ -161,11 +146,26 @@ def new_format_tags(tagged_texts):
     return formatted_list_by_sentence
 
 
-# def lemmatize_words(phrase_list):
-#     logging.debug("Entering lemmatization")
-#     for x in phrase_list:
-#         for phrase in x:
-#             print(phrase)
+def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
+    reconstructed_sentences = []
+    for phrase in original_sentences:
+        new_words = []
+        for word in phrase:
+            new_words.append(word[0])
+        sentence = ' '.join(new_words)
+        reconstructed_sentences.append(sentence)
+    # reconstructed_sentences2 = []
+    # for x in reconstructed_sentences:
+    #     sentence = ' '.join(x)
+    #     reconstructed_sentences2.append(sentence)
+    # print(reconstructed_sentences2)
+    temporary_list = []
+    for x in df_vad_scores["word"]:
+        phrase = [item for item in reconstructed_sentences if x in item]
+        temporary_list.append(phrase)
+    set1 = pd.Series(temporary_list)
+    df_vad_scores["sentence"] = set1.values
+    return df_vad_scores
 
 def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -190,7 +190,9 @@ def main():
 
     short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
-    df_vad_scores = calculate_new_vad_scores(vad_scores_phrases, original_phrases)
+    df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
+    print(df_vad_scores.head())
+    df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
     print(df_vad_scores.head())
     save_file(df_vad_scores, "sample10_vad_scores")
 
