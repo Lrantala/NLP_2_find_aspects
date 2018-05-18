@@ -99,7 +99,6 @@ def assign_vad_scores(noun_phrases, score_list):
 
 
 def calculate_new_vad_scores(noun_phrases):
-    all_new_scores = []
     phrase_scores = []
     for phrase in noun_phrases:
         new_word = []
@@ -111,11 +110,14 @@ def calculate_new_vad_scores(noun_phrases):
             valence.append(v)
             arousal.append(a)
             dominance.append(d)
-        new_string = ' '.join(new_word)
+        new_string = ' '.join(new_word).lower()
         new_valence = float(format(sum(valence)/len(valence), '.2f'))
         new_arousal = float(format(sum(arousal)/len(arousal), '.2f'))
         new_dominance = float(format(sum(dominance)/len(dominance), '.2f'))
-        print(new_string, str(new_valence), str(new_arousal), str(new_dominance))
+        phrase_scores.append((new_string, str(new_valence), str(new_arousal), str(new_dominance)))
+    labels = ["word", "valence", "arousal", "dominance"]
+    df_scores = pd.DataFrame.from_records(phrase_scores, columns=("word", "valence", "arousal", "dominance"))
+    return df_scores
 
 def new_format_tags(tagged_texts):
     logging.debug("Entering format tags")
@@ -170,7 +172,9 @@ def main():
 
     short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
-    calculate_new_vad_scores(vad_scores_phrases)
+    df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
+    print(df_vad_scores.head(10))
+    save_file(df_vad_scores, "sample10_vad_scores")
 
 if __name__ == '__main__':
     main()
