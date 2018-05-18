@@ -78,6 +78,7 @@ def assign_vad_scores(noun_phrases, score_list):
     phrase_scores = []
     all_scores = []
     for x in noun_phrases:
+        count_chunks = 0
         for phrase in x:
             print(phrase)
             i = 0
@@ -90,10 +91,10 @@ def assign_vad_scores(noun_phrases, score_list):
                 else:
                     phrase_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
                 i += 1
-        if len(phrase_scores) != 0:
-            all_scores.append(phrase_scores)
-        phrase_scores = []
-    print(all_scores)
+            if len(phrase_scores) != 0:
+                all_scores.append(phrase_scores)
+            phrase_scores = []
+    return all_scores
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
@@ -150,18 +151,8 @@ def main():
     zipped_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"], warriner_scores["dominance"]))
 
     short_nouns = noun_phrases[:10]
-    assign_vad_scores(short_nouns, zipped_scores)
-
-    # new_find_noun_phrases(tagged_texts.head())
-    # for row in tagged_texts.head():
-    #     for word in row:
-    #         print(word[1])
-    # for pair1, pair2 in COMBINATIONS2:
-    #
-    #     print(pair1)
-    #     print(pair2)
-    #     print(type(pair2))
-    # find_noun_phrases(df["lemma_tag_dep"].head(20))
+    vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
+    print(vad_scores_phrases)
 
 if __name__ == '__main__':
     main()
