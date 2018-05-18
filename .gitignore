@@ -71,6 +71,7 @@ fabric.properties
 
 /save/
 *.csv*
+*.txt*
 
 #__pycache__
 /__pycache__/

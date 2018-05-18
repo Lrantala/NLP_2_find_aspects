@@ -40,6 +40,7 @@ def save_file(file, name):
 
 def new_find_noun_phrases(raw_list):
     logging.debug("Entering find noun phrases")
+    original_phrase_list = []
     list_of_noun_phrases = []
     list_of_grouped_words = []
     for sentence in raw_list:
@@ -68,9 +69,10 @@ def new_find_noun_phrases(raw_list):
         # This creates every sentence as its own list of lists
         if len(list_of_grouped_words) != 0:
             list_of_noun_phrases.append(list_of_grouped_words)
+            original_phrase_list.append(sentence)
         list_of_grouped_words = []
     # This returns a list, where evey noun is its own list
-    return list_of_noun_phrases
+    return list_of_noun_phrases, original_phrase_list
 
 
 def assign_vad_scores(noun_phrases, score_list):
@@ -93,13 +95,15 @@ def assign_vad_scores(noun_phrases, score_list):
             if len(phrase_scores) != 0:
                 all_scores.append(phrase_scores)
             phrase_scores = []
+    print(len(all_scores))
     return all_scores
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
 
-def calculate_new_vad_scores(noun_phrases):
+def calculate_new_vad_scores(noun_phrases, original_phrases):
     phrase_scores = []
+    original_phrase = []
     for phrase in noun_phrases:
         new_word = []
         valence = []
@@ -115,8 +119,21 @@ def calculate_new_vad_scores(noun_phrases):
         new_arousal = float(format(sum(arousal)/len(arousal), '.2f'))
         new_dominance = float(format(sum(dominance)/len(dominance), '.2f'))
         phrase_scores.append((new_string, str(new_valence), str(new_arousal), str(new_dominance)))
-    labels = ["word", "valence", "arousal", "dominance"]
     df_scores = pd.DataFrame.from_records(phrase_scores, columns=("word", "valence", "arousal", "dominance"))
+    print("VAD:")
+    print(len(df_scores["word"]))
+    for sentences in original_phrases:
+        new_word2 = []
+        for word2 in sentences:
+            new_word2.append(word2[0])
+        new_string2 = ' '.join(new_word2).lower()
+        original_phrase.append(new_string2)
+    labels = ["word", "valence", "arousal", "dominance", "original sentence"]
+    orig_series = pd.Series(original_phrase)
+    print("Orig sent:")
+    print(len(orig_series))
+
+    df_scores["original_sentence"] = orig_series.values
     return df_scores
 
 def new_format_tags(tagged_texts):
@@ -165,15 +182,16 @@ def main():
     # This creates a new column, where the tags are shortened to basic forms.
     tagged_texts = df["lemma_tag_dep"]
     df["formatted"] = new_format_tags(tagged_texts)
-    noun_phrases = new_find_noun_phrases(df["formatted"])
+    noun_phrases, original_phrases = new_find_noun_phrases(df["formatted"])
+    # combined = (list(zip(original_phrases, noun_phrases)))
 
     warriner_scores = open_file("Short_Warriner.csv", "warriner")
     zipped_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"], warriner_scores["dominance"]))
 
     short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
-    df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
-    print(df_vad_scores.head(10))
+    df_vad_scores = calculate_new_vad_scores(vad_scores_phrases, original_phrases)
+    print(df_vad_scores.head())
     save_file(df_vad_scores, "sample10_vad_scores")
 
 if __name__ == '__main__':
