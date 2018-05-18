@@ -50,9 +50,19 @@ def new_find_noun_phrases(raw_list):
                 first_word = sentence[i]
                 if any(first_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                     next_word = sentence[i+1]
-                # This part checks for tri-grams
+                # This part checks for quadro-grams
                 if any(next_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
-                    if i+2 < len(sentence):
+                    if i + 3 < len(sentence):
+                        subsequent_word = sentence[i + 2]
+                        fourth_word = sentence[i + 3]
+                        for x1, x2, x3, x4 in COMBINATIONS4:
+                            if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1] and x4 == fourth_word[1]:
+                                list_of_grouped_words.append((first_word, next_word, subsequent_word, fourth_word))
+                                inclusion_check = True
+                    if i + 3 >= len(sentence):
+                        inclusion_check = False
+                    # This part checks for tri-grams
+                    if (i+2 < len(sentence)) and inclusion_check == False:
                         subsequent_word = sentence[i + 2]
                         for x1, x2, x3 in COMBINATIONS3:
                             if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1]:
@@ -61,7 +71,7 @@ def new_find_noun_phrases(raw_list):
                     if i+2 >= len(sentence):
                         inclusion_check = False
                 # This part checks for bigrams
-                if not inclusion_check:
+                if inclusion_check == False:
                     for x1, x2 in COMBINATIONS2:
                         if x1 == first_word[1] and x2 == next_word[1]:
                             list_of_grouped_words.append((first_word, next_word))
