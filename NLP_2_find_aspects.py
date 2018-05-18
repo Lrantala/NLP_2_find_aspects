@@ -80,7 +80,6 @@ def assign_vad_scores(noun_phrases, score_list):
     for x in noun_phrases:
         count_chunks = 0
         for phrase in x:
-            print(phrase)
             i = 0
             while i < len(phrase):
                 # The way to access the word in the list is through phrase[i][0]
@@ -98,6 +97,25 @@ def assign_vad_scores(noun_phrases, score_list):
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
+
+def calculate_new_vad_scores(noun_phrases):
+    all_new_scores = []
+    phrase_scores = []
+    for phrase in noun_phrases:
+        new_word = []
+        valence = []
+        arousal = []
+        dominance = []
+        for word, v, a, d in phrase:
+            new_word.append(word)
+            valence.append(v)
+            arousal.append(a)
+            dominance.append(d)
+        new_string = ' '.join(new_word)
+        new_valence = float(format(sum(valence)/len(valence), '.2f'))
+        new_arousal = float(format(sum(arousal)/len(arousal), '.2f'))
+        new_dominance = float(format(sum(dominance)/len(dominance), '.2f'))
+        print(new_string, str(new_valence), str(new_arousal), str(new_dominance))
 
 def new_format_tags(tagged_texts):
     logging.debug("Entering format tags")
@@ -150,9 +168,9 @@ def main():
     warriner_scores = open_file("Short_Warriner.csv", "warriner")
     zipped_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"], warriner_scores["dominance"]))
 
-    short_nouns = noun_phrases[:10]
+    short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
-    print(vad_scores_phrases)
+    calculate_new_vad_scores(vad_scores_phrases)
 
 if __name__ == '__main__':
     main()
