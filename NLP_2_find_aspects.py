@@ -87,15 +87,19 @@ def new_find_noun_phrases(raw_list):
             list_of_noun_phrases.append(list_of_grouped_words)
             # New code
             original_phrase_list.append(raw_list["text"][j])
-            # original_lemmas_list.append(raw_list["formatted"][j])
+            original_lemmas_list.append(raw_list["formatted"][j])
             # old code
             # original_phrase_list.append(sentence)
         list_of_grouped_words = []
-    # This returns a list, where evey noun is its own list
-    # df_frames = [original_phrase_list, original_lemmas_list]
-    # phrases_and_lemmas = pd.concat(df_frames)
+    # This returns a list, where every noun is its own list
+    phrases_and_lemmas = pd.DataFrame()
+    phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
+    phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
     # new code
-    return list_of_noun_phrases, original_phrase_list
+    print(phrases_and_lemmas[:10])
+    return list_of_noun_phrases, phrases_and_lemmas
+
+    # This returns a list, where evey noun is its own list
     # old code
     # return list_of_noun_phrases, original_phrase_list
 
@@ -173,20 +177,30 @@ def new_format_tags(tagged_texts):
 
 def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
     # old code
-    # reconstructed_sentences = []
-    # for phrase in original_sentences:
-    #     new_words = []
-    #     for word in phrase:
-    #         new_words.append(word[0])
-    #     sentence = ' '.join(new_words)
-    #     reconstructed_sentences.append(sentence)
+    reconstructed_sentences = []
+    for phrase in original_sentences["original_lemmas"]:
+        new_words = []
+        for word in phrase:
+            new_words.append(word[0])
+        sentence = ' '.join(new_words)
+        reconstructed_sentences.append(sentence)
+    original_sentences["reconstructed"] = pd.Series(reconstructed_sentences)
 
     temporary_list = []
-    lower_case_list = [x.lower() for x in original_sentences]
+    lower_case_list = [x.lower() for x in original_sentences["original_text"]]
     for x in df_vad_scores["word"]:
-        phrase = [item for item in lower_case_list if x in item]
+        inclusion = False
+        if not inclusion:
+            for i, sentence in enumerate(original_sentences["reconstructed"]):
+                if (x in sentence) and not inclusion:
+                    temporary_list.append(original_sentences["original_text"][i])
+                    inclusion = True
+                    break
+    # for i, x in enumerate(df_vad_scores["word"]):
+    #     phrase = [item for item in lower_case_list if x in item]
+        # old code
         # phrase = [item for item in original_sentences if x in item]
-        temporary_list.append(phrase)
+        # temporary_list.append(phrase)
     set1 = pd.Series(temporary_list)
     df_vad_scores["sentence"] = set1.values
     return df_vad_scores
