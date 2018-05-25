@@ -40,10 +40,16 @@ def save_file(file, name):
 
 def new_find_noun_phrases(raw_list):
     logging.debug("Entering find noun phrases")
+    # old code
+    # original_phrase_list = []
+    # new code
     original_phrase_list = []
+    original_lemmas_list = []
+
     list_of_noun_phrases = []
     list_of_grouped_words = []
-    for sentence in raw_list:
+    tagged_sentences = raw_list["formatted"]
+    for j, sentence in enumerate(tagged_sentences):
         inclusion_check = False
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
@@ -79,10 +85,19 @@ def new_find_noun_phrases(raw_list):
         # This creates every sentence as its own list of lists
         if len(list_of_grouped_words) != 0:
             list_of_noun_phrases.append(list_of_grouped_words)
-            original_phrase_list.append(sentence)
+            # New code
+            original_phrase_list.append(raw_list["text"][j])
+            # original_lemmas_list.append(raw_list["formatted"][j])
+            # old code
+            # original_phrase_list.append(sentence)
         list_of_grouped_words = []
     # This returns a list, where evey noun is its own list
+    # df_frames = [original_phrase_list, original_lemmas_list]
+    # phrases_and_lemmas = pd.concat(df_frames)
+    # new code
     return list_of_noun_phrases, original_phrase_list
+    # old code
+    # return list_of_noun_phrases, original_phrase_list
 
 
 def assign_vad_scores(noun_phrases, score_list):
@@ -157,21 +172,20 @@ def new_format_tags(tagged_texts):
 
 
 def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
-    reconstructed_sentences = []
-    for phrase in original_sentences:
-        new_words = []
-        for word in phrase:
-            new_words.append(word[0])
-        sentence = ' '.join(new_words)
-        reconstructed_sentences.append(sentence)
-    # reconstructed_sentences2 = []
-    # for x in reconstructed_sentences:
-    #     sentence = ' '.join(x)
-    #     reconstructed_sentences2.append(sentence)
-    # print(reconstructed_sentences2)
+    # old code
+    # reconstructed_sentences = []
+    # for phrase in original_sentences:
+    #     new_words = []
+    #     for word in phrase:
+    #         new_words.append(word[0])
+    #     sentence = ' '.join(new_words)
+    #     reconstructed_sentences.append(sentence)
+
     temporary_list = []
+    lower_case_list = [x.lower() for x in original_sentences]
     for x in df_vad_scores["word"]:
-        phrase = [item for item in reconstructed_sentences if x in item]
+        phrase = [item for item in lower_case_list if x in item]
+        # phrase = [item for item in original_sentences if x in item]
         temporary_list.append(phrase)
     set1 = pd.Series(temporary_list)
     df_vad_scores["sentence"] = set1.values
@@ -192,7 +206,7 @@ def main():
     # This creates a new column, where the tags are shortened to basic forms.
     tagged_texts = df["lemma_tag_dep"]
     df["formatted"] = new_format_tags(tagged_texts)
-    noun_phrases, original_phrases = new_find_noun_phrases(df["formatted"])
+    noun_phrases, original_phrases = new_find_noun_phrases(df)
     # combined = (list(zip(original_phrases, noun_phrases)))
 
     warriner_scores = open_file("Short_Warriner.csv", "warriner")
