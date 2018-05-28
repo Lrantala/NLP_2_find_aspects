@@ -51,6 +51,7 @@ def new_find_noun_phrases(raw_list):
     tagged_sentences = raw_list["formatted"]
     for j, sentence in enumerate(tagged_sentences):
         inclusion_check = False
+        previous_word = None
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
                 inclusion_check = False
@@ -66,22 +67,30 @@ def new_find_noun_phrases(raw_list):
                                 if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1] and x4 == fourth_word[1]:
                                     list_of_grouped_words.append((first_word, next_word, subsequent_word, fourth_word))
                                     inclusion_check = True
-                    if i + 3 >= len(sentence):
-                        inclusion_check = False
+                    # if i + 3 >= len(sentence):
+                    #     inclusion_check = False
                     # This part checks for tri-grams
                     if (i+2 < len(sentence)) and inclusion_check == False:
                         subsequent_word = sentence[i + 2]
                         for x1, x2, x3 in COMBINATIONS3:
                             if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1]:
                                 list_of_grouped_words.append((first_word, next_word, subsequent_word))
+                                previous_word = first_word
                                 inclusion_check = True
                     if i+2 >= len(sentence):
                         inclusion_check = False
                 # This part checks for bigrams
                 if inclusion_check == False:
-                    for x1, x2 in COMBINATIONS2:
-                        if x1 == first_word[1] and x2 == next_word[1]:
-                            list_of_grouped_words.append((first_word, next_word))
+                    if previous_word == None:
+                        for x1, x2 in COMBINATIONS2:
+                            if x1 == first_word[1] and x2 == next_word[1]:
+                                list_of_grouped_words.append((first_word, next_word))
+                    elif not any(previous_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
+                        for x1, x2 in COMBINATIONS2:
+                            if x1 == first_word[1] and x2 == next_word[1]:
+                                list_of_grouped_words.append((first_word, next_word))
+                    else:
+                        previous_word = None
         # This creates every sentence as its own list of lists
         if len(list_of_grouped_words) != 0:
             list_of_noun_phrases.append(list_of_grouped_words)
@@ -210,6 +219,7 @@ def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
 def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.debug("Entering main")
+    # This was for testing
     df = open_file("Sample10testshort.csv", "pandas")
     # Done
     # df = open_file("merged1-210k.csv", "pandas")
