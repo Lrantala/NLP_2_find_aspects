@@ -53,18 +53,19 @@ def new_find_noun_phrases(raw_list):
         inclusion_check = False
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
+                inclusion_check = False
                 first_word = sentence[i]
                 if any(first_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                     next_word = sentence[i+1]
                 # This part checks for quadro-grams
-                if any(next_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
-                    if i + 3 < len(sentence):
-                        subsequent_word = sentence[i + 2]
-                        fourth_word = sentence[i + 3]
-                        for x1, x2, x3, x4 in COMBINATIONS4:
-                            if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1] and x4 == fourth_word[1]:
-                                list_of_grouped_words.append((first_word, next_word, subsequent_word, fourth_word))
-                                inclusion_check = True
+                    if any(next_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
+                        if i + 3 < len(sentence):
+                            subsequent_word = sentence[i + 2]
+                            fourth_word = sentence[i + 3]
+                            for x1, x2, x3, x4 in COMBINATIONS4:
+                                if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1] and x4 == fourth_word[1]:
+                                    list_of_grouped_words.append((first_word, next_word, subsequent_word, fourth_word))
+                                    inclusion_check = True
                     if i + 3 >= len(sentence):
                         inclusion_check = False
                     # This part checks for tri-grams
@@ -81,7 +82,6 @@ def new_find_noun_phrases(raw_list):
                     for x1, x2 in COMBINATIONS2:
                         if x1 == first_word[1] and x2 == next_word[1]:
                             list_of_grouped_words.append((first_word, next_word))
-                            inclusion_check = True
         # This creates every sentence as its own list of lists
         if len(list_of_grouped_words) != 0:
             list_of_noun_phrases.append(list_of_grouped_words)
@@ -131,6 +131,7 @@ def assign_vad_scores(noun_phrases, score_list):
 
 
 def calculate_new_vad_scores(noun_phrases):
+    logging.debug("Entering calculate new vad scores")
     phrase_scores = []
     for phrase in noun_phrases:
         new_word = []
@@ -176,6 +177,7 @@ def new_format_tags(tagged_texts):
 
 
 def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
+    logging.debug("Entering find original sentence for vad scores")
     # old code
     reconstructed_sentences = []
     for phrase in original_sentences["original_lemmas"]:
@@ -208,7 +210,9 @@ def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
 def main():
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.debug("Entering main")
-    df = open_file("Sample10.csv", "pandas")
+    df = open_file("Sample10testshort.csv", "pandas")
+    # Done
+    # df = open_file("merged1-210k.csv", "pandas")
 
 
     # Old version
