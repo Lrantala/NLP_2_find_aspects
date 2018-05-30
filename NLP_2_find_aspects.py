@@ -13,6 +13,7 @@ COMBINATIONS2 = [("NN", "NN"), ("JJ", "NN")]
 ADJECTIVES = ["JJ", "JJR", "JJS"]
 NOUNS = ["NN", "NNP", "NNPS", "NNS"]
 ADVERBS = ["RB", "RBR", "RBS"]
+VERBS = ["VB", "VBD", "VBG", "VBN", "VBN", "VBP", "VBZ"]
 
 def open_file(file, type):
     if type == "warriner":
@@ -57,40 +58,41 @@ def new_find_noun_phrases(raw_list):
         for i, word in enumerate(sentence):
             if i+1 < len(sentence):
                 inclusion_check = False
-                first_word = sentence[i]
-                if any(first_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
-                    next_word = sentence[i+1]
+                word1 = sentence[i]
+                if any(word1[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
+                    word2 = sentence[i+1]
                 # This part checks for quadro-grams
-                    if any(next_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
+                    if any(word2[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         if i + 3 < len(sentence):
-                            subsequent_word = sentence[i + 2]
-                            fourth_word = sentence[i + 3]
+                            word3 = sentence[i + 2]
+                            word4 = sentence[i + 3]
                             for x1, x2, x3, x4 in COMBINATIONS4:
-                                if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1] and x4 == fourth_word[1]:
-                                    list_of_grouped_words.append((first_word, next_word, subsequent_word, fourth_word))
+                                if x1 == word1[1] and x2 == word2[1] and x3 == word3[1] and x4 == word4[1]:
+                                    list_of_grouped_words.append((word1, word2, word3, word4))
                                     inclusion_check = True
                     if i + 3 >= len(sentence):
                         inclusion_check = False
                     # This part checks for tri-grams
                     if (i+2 < len(sentence)) and inclusion_check == False:
-                        subsequent_word = sentence[i + 2]
+                        word3 = sentence[i + 2]
                         for x1, x2, x3 in COMBINATIONS3:
-                            if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1]:
-                                list_of_grouped_words.append((first_word, next_word, subsequent_word))
-                                previous_word = first_word
+                            if x1 == word1[1] and x2 == word2[1] and x3 == word3[1]:
+                                list_of_grouped_words.append((word1, word2, word3))
+                                previous_word = word1
                                 inclusion_check = True
+                                # find_related_opinion_word(sentence)
                     if i+2 >= len(sentence):
                         inclusion_check = False
                 # This part checks for bigrams
                 if inclusion_check == False:
                     if previous_word == None:
                         for x1, x2 in COMBINATIONS2:
-                            if x1 == first_word[1] and x2 == next_word[1]:
-                                list_of_grouped_words.append((first_word, next_word))
+                            if x1 == word1[1] and x2 == word2[1]:
+                                list_of_grouped_words.append((word1, word2))
                     elif not any(previous_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         for x1, x2 in COMBINATIONS2:
-                            if x1 == first_word[1] and x2 == next_word[1]:
-                                list_of_grouped_words.append((first_word, next_word))
+                            if x1 == word1[1] and x2 == word2[1]:
+                                list_of_grouped_words.append((word1, word2))
                     else:
                         previous_word = None
         # This creates every sentence as its own list of lists
@@ -106,13 +108,13 @@ def new_find_noun_phrases(raw_list):
     phrases_and_lemmas = pd.DataFrame()
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
-    # new code
-    # print(phrases_and_lemmas[:10])
     return list_of_noun_phrases, phrases_and_lemmas
 
-    # This returns a list, where evey noun is its own list
-    # old code
-    # return list_of_noun_phrases, original_phrase_list
+
+def find_related_opinion_word(words):
+    """This takes """
+    print(words)
+    pass
 
 
 def assign_vad_scores(noun_phrases, score_list):
