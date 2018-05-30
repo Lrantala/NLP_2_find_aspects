@@ -80,6 +80,14 @@ def new_find_noun_phrases(raw_list):
                                 list_of_grouped_words.append((word1, word2, word3))
                                 previous_word = word1
                                 inclusion_check = True
+                                # This part starts checking if the noun phrase is followed by
+                                # a verb and then adjective.
+                                if (i+4 < len(sentence)):
+                                    word_verb = sentence[i + 3]
+                                    if (word_verb[1] in VERBS and word_verb[0] == "be"):
+                                        word_after_verb = sentence[i + 4]
+                                        if word_after_verb[1] in ADJECTIVES:
+                                            print("verb: %s, %s" % (word_verb[0], word_after_verb[0]))
                                 # find_related_opinion_word(sentence)
                     if i+2 >= len(sentence):
                         inclusion_check = False
@@ -109,6 +117,20 @@ def new_find_noun_phrases(raw_list):
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
     return list_of_noun_phrases, phrases_and_lemmas
+
+
+def find_sentence_structures(raw_list):
+    logging.debug("Entering find sentence structures.")
+    list_of_sentences = []
+    tagged_sentences = raw_list["formatted"]
+    for j, sentence in enumerate(tagged_sentences):
+        temp_sentence_list = []
+        for i, word in enumerate(sentence):
+            if word[2] != "punct":
+                temp_sentence_list.append(word[1])
+            else:
+                list_of_sentences.append(temp_sentence_list)
+    return list_of_sentences
 
 
 def find_related_opinion_word(words):
@@ -180,6 +202,9 @@ def new_format_tags(tagged_texts):
             if (word[1] in ADVERBS):
                 word2 = (word[0], ADVERBS[0], word[2])
                 formatted_list.append(word2)
+            # This deletes determiners (the, a, an)
+            if (word[1] == "DT"):
+                pass
             else:
                 if word2 == None:
                     formatted_list.append(word)
@@ -243,11 +268,18 @@ def main(df_part, name, zipped_scores):
     vad_score_name = name + "_vad_scores"
     save_file(df_vad_scores, vad_score_name)
 
+    # Extra step to find sentence structures
+    most_common_sentences = pd.DataFrame()
+    most_common_sentences["sentences"] = find_sentence_structures(df)
+    save_file(most_common_sentences, name + "_common_senteces")
+
+
 def return_sys_arguments(args):
     if len(args) == 2:
         return args[1]
     else:
         return None
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
