@@ -5,6 +5,7 @@ pd.options.mode.chained_assignment = None
 import logging
 import csv
 import os
+import sys
 
 COMBINATIONS4 = [("JJ", "NN","NN", "NN"),("RB", "JJ","NN", "NN"),("JJ", "JJ","NN", "NN"),("RB","JJ","JJ","NN"),("JJ","CC", "JJ", "NN")]
 COMBINATIONS3 = [("NN","NN", "NN"),("JJ","NN", "NN"),("RB","JJ","NN"),("JJ","JJ", "NN"), ("NN", "CC", "NN")]
@@ -33,6 +34,7 @@ def save_file(file, name):
         if not os.path.exists(filepath):
             os.makedirs(filepath)
         file.to_csv(filepath + name + ".csv", encoding='utf-8', sep=";", quoting=csv.QUOTE_NONNUMERIC)
+        print("Saved file: %s%s%s" % (filepath, name, ".csv"))
     except IOError as exception:
         print("Couldn't save the file. Encountered an error: %s" % exception)
     logging.debug("Finished writing: " + name)
@@ -67,8 +69,8 @@ def new_find_noun_phrases(raw_list):
                                 if x1 == first_word[1] and x2 == next_word[1] and x3 == subsequent_word[1] and x4 == fourth_word[1]:
                                     list_of_grouped_words.append((first_word, next_word, subsequent_word, fourth_word))
                                     inclusion_check = True
-                    # if i + 3 >= len(sentence):
-                    #     inclusion_check = False
+                    if i + 3 >= len(sentence):
+                        inclusion_check = False
                     # This part checks for tri-grams
                     if (i+2 < len(sentence)) and inclusion_check == False:
                         subsequent_word = sentence[i + 2]
@@ -105,7 +107,7 @@ def new_find_noun_phrases(raw_list):
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
     # new code
-    print(phrases_and_lemmas[:10])
+    # print(phrases_and_lemmas[:10])
     return list_of_noun_phrases, phrases_and_lemmas
 
     # This returns a list, where evey noun is its own list
@@ -216,19 +218,14 @@ def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
     df_vad_scores["sentence"] = set1.values
     return df_vad_scores
 
-def main():
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+def read_folder_contents(path_to_files):
+    filelist = os.listdir(path_to_files)
+    return filelist
+
+def main(df_part, name, zipped_scores):
     logging.debug("Entering main")
-    # This was for testing
-    df = open_file("Sample10testshort.csv", "pandas")
-    # Done
-    # df = open_file("merged1-210k.csv", "pandas")
-
-
-    # Old version
-    #raw_list_of_nouns_adjectives = find_nouns_adjectives(df.head(20))
-    #listed_nouns = group_nouns(raw_list_of_nouns_adjectives)
-    # print(listed_nouns)
+    df = df_part
 
     # New version
     # This creates a new column, where the tags are shortened to basic forms.
@@ -237,16 +234,46 @@ def main():
     noun_phrases, original_phrases = new_find_noun_phrases(df)
     # combined = (list(zip(original_phrases, noun_phrases)))
 
-    warriner_scores = open_file("Short_Warriner.csv", "warriner")
-    zipped_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"], warriner_scores["dominance"]))
-
     short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
     df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
-    print(df_vad_scores.head())
     df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
-    print(df_vad_scores.head())
-    save_file(df_vad_scores, "sample10_vad_scores")
+    vad_score_name = name + "_vad_scores"
+    save_file(df_vad_scores, vad_score_name)
+
+def return_sys_arguments(args):
+    if len(args) == 2:
+        return args[1]
+    else:
+        return None
 
 if __name__ == '__main__':
-    main()
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    warriner_scores = open_file("Short_Warriner.csv", "warriner")
+    zip_scores = list(zip(warriner_scores["word"], warriner_scores["valence"], warriner_scores["arousal"],
+                          warriner_scores["dominance"]))
+
+    argument = return_sys_arguments(sys.argv)
+    if argument is None:
+        print("You didn't give an argument")
+    elif os.path.isdir(argument):
+        files = read_folder_contents(argument)
+        print("Gave a folder: %s, that has %s files." % (argument, str(len(files))))
+        x = 0
+        for f in files:
+            x += 1
+            df = open_file(argument + "/" + f, "pandas")
+            name = os.path.splitext(f)[0]
+            print("Opened file: %s" % name)
+            main(df, name, zip_scores)
+
+    elif os.path.isfile(argument):
+        df = open_file(argument, "pandas")
+        name = os.path.splitext(argument)[0]
+        main(df, name, zip_scores)
+
+    else:
+        print("You didn't give a file or folder as your argument.")
+
+
+
