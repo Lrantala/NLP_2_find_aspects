@@ -183,6 +183,28 @@ def assign_vad_scores(noun_phrases, score_list):
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
 
+def assign_vad_scores_for_adjectives(adjectives, score_list):
+    logging.debug("Entering assign vad scores for adjectives.")
+    adjective_scores = []
+    all_scores = []
+    for phrase in adjectives:
+        i = 0
+        while i < len(phrase):
+            # The way to access the word in the list is through phrase[i][0]
+            score = [item for item in score_list if phrase[i][0] in item]
+            if len(score) != 0:
+                # The * ensures that only the list contents from score are returned
+                adjective_scores.append(*score)
+            else:
+                adjective_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
+            i += 1
+        if len(adjective_scores) != 0:
+            all_scores.append(adjective_scores)
+        adjective_scores = []
+    return all_scores
+    # The first number in the score list is the number of the word, the second one is [0]
+    # for name, [1] for valence, [2] for arousal, [3] for dominance
+
 def calculate_new_vad_scores(noun_phrases):
     logging.debug("Entering calculate new vad scores")
     phrase_scores = []
@@ -280,6 +302,8 @@ def main(df_part, name, zipped_scores):
 
     short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
+    vad_adjectives = assign_vad_scores_for_adjectives(original_phrases["related_opinion_words"], zipped_scores)
+
     df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
     df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
     vad_score_name = name + "_vad_scores"
