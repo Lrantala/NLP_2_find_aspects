@@ -50,6 +50,7 @@ def new_find_noun_phrases(raw_list):
     # new code
     original_phrase_list = []
     original_lemmas_list = []
+    related_opinion_words = []
 
     list_of_noun_phrases = []
     list_of_single_words = []
@@ -85,8 +86,8 @@ def new_find_noun_phrases(raw_list):
                                 inclusion_check = True
                                 # This part starts checking if the noun phrase is followed by
                                 # a verb and then adjective.
-                                find_after_phrase_verb_and_adjective(i + 4, sentence)
-                                # find_related_opinion_word(sentence)
+                                list_of_single_words = find_related_opinion_words(i + 4, sentence)
+
                     if i+2 >= len(sentence):
                         inclusion_check = False
                 # This part checks for bigrams
@@ -95,11 +96,12 @@ def new_find_noun_phrases(raw_list):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
-                                # find_after_phrase_verb_and_adjective(i + 3, sentence)
+                                list_of_single_words = find_related_opinion_words(i + 3, sentence)
                     elif not any(previous_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
+                                list_of_single_words = find_related_opinion_words(i + 3, sentence)
                     else:
                         previous_word = None
         # This creates every sentence as its own list of lists
@@ -108,22 +110,30 @@ def new_find_noun_phrases(raw_list):
             # New code
             original_phrase_list.append(raw_list["text"][j])
             original_lemmas_list.append(raw_list["formatted"][j])
+            related_opinion_words.append(list_of_single_words)
             # old code
             # original_phrase_list.append(sentence)
         list_of_grouped_words = []
     # This returns a list, where every noun is its own list
     phrases_and_lemmas = pd.DataFrame()
+    phrases_and_lemmas["related_opinion_words"] = pd.Series(related_opinion_words)
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
     return list_of_noun_phrases, phrases_and_lemmas
 
 
-def find_after_phrase_verb_and_adjective(length, sentence):
+def find_related_opinion_words(length, sentence):
+    list_of_opinion_words = []
     print("Length: %s, sentence length: %s" % (str(length), len(sentence)))
     print("Difference in length: %s" % (len(sentence) - length))
     while length < len(sentence):
-        print(sentence[length])
+        if sentence[length][1] in ADJECTIVES:
+            list_of_opinion_words.append(sentence[length])
         length += 1
+    if len(list_of_opinion_words) != 0:
+        return list_of_opinion_words
+    else:
+        return "None"
 
     # old code
     # if (length < len(sentence)):
@@ -146,12 +156,6 @@ def find_sentence_structures(raw_list):
             else:
                 list_of_sentences.append(temp_sentence_list)
     return list_of_sentences
-
-
-def find_related_opinion_word(words):
-    """This takes """
-    print(words)
-    pass
 
 
 def assign_vad_scores(noun_phrases, score_list):
@@ -254,11 +258,6 @@ def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
                     temporary_list.append(original_sentences["original_text"][i])
                     inclusion = True
                     break
-    # for i, x in enumerate(df_vad_scores["word"]):
-    #     phrase = [item for item in lower_case_list if x in item]
-        # old code
-        # phrase = [item for item in original_sentences if x in item]
-        # temporary_list.append(phrase)
     set1 = pd.Series(temporary_list)
     df_vad_scores["sentence"] = set1.values
     return df_vad_scores
