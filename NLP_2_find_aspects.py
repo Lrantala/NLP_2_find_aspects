@@ -14,6 +14,8 @@ ADJECTIVES = ["JJ", "JJR", "JJS"]
 NOUNS = ["NN", "NNP", "NNPS", "NNS"]
 ADVERBS = ["RB", "RBR", "RBS"]
 VERBS = ["VB", "VBD", "VBG", "VBN", "VBN", "VBP", "VBZ"]
+ADJECTIVE_PHRASES = [("RB"),("JJ"), ("RB", "RB", "JJ")]
+
 
 def open_file(file, type):
     if type == "warriner":
@@ -50,6 +52,7 @@ def new_find_noun_phrases(raw_list):
     original_lemmas_list = []
 
     list_of_noun_phrases = []
+    list_of_single_words = []
     list_of_grouped_words = []
     tagged_sentences = raw_list["formatted"]
     for j, sentence in enumerate(tagged_sentences):
@@ -82,12 +85,7 @@ def new_find_noun_phrases(raw_list):
                                 inclusion_check = True
                                 # This part starts checking if the noun phrase is followed by
                                 # a verb and then adjective.
-                                if (i+4 < len(sentence)):
-                                    word_verb = sentence[i + 3]
-                                    if (word_verb[1] in VERBS and word_verb[0] == "be"):
-                                        word_after_verb = sentence[i + 4]
-                                        if word_after_verb[1] in ADJECTIVES:
-                                            print("verb: %s, %s" % (word_verb[0], word_after_verb[0]))
+                                find_after_phrase_verb_and_adjective(i + 4, sentence)
                                 # find_related_opinion_word(sentence)
                     if i+2 >= len(sentence):
                         inclusion_check = False
@@ -97,6 +95,7 @@ def new_find_noun_phrases(raw_list):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
+                                # find_after_phrase_verb_and_adjective(i + 3, sentence)
                     elif not any(previous_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
@@ -117,6 +116,22 @@ def new_find_noun_phrases(raw_list):
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
     return list_of_noun_phrases, phrases_and_lemmas
+
+
+def find_after_phrase_verb_and_adjective(length, sentence):
+    print("Length: %s, sentence length: %s" % (str(length), len(sentence)))
+    print("Difference in length: %s" % (len(sentence) - length))
+    while length < len(sentence):
+        print(sentence[length])
+        length += 1
+
+    # old code
+    # if (length < len(sentence)):
+    #     word_verb = sentence[length - 1]
+    #     if (word_verb[1] in VERBS):
+    #         word_after_verb = sentence[length]
+    #         # if word_after_verb[1] in ADJECTIVES:
+    #         print("verb: %s, %s" % (word_verb[0], word_after_verb[0]))
 
 
 def find_sentence_structures(raw_list):
@@ -159,7 +174,6 @@ def assign_vad_scores(noun_phrases, score_list):
             if len(phrase_scores) != 0:
                 all_scores.append(phrase_scores)
             phrase_scores = []
-    print(len(all_scores))
     return all_scores
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
@@ -168,6 +182,7 @@ def assign_vad_scores(noun_phrases, score_list):
 def calculate_new_vad_scores(noun_phrases):
     logging.debug("Entering calculate new vad scores")
     phrase_scores = []
+    original_scores = []
     for phrase in noun_phrases:
         new_word = []
         valence = []
@@ -182,8 +197,11 @@ def calculate_new_vad_scores(noun_phrases):
         new_valence = float(format(sum(valence)/len(valence), '.2f'))
         new_arousal = float(format(sum(arousal)/len(arousal), '.2f'))
         new_dominance = float(format(sum(dominance)/len(dominance), '.2f'))
+        original_scores.append(phrase)
         phrase_scores.append((new_string, str(new_valence), str(new_arousal), str(new_dominance)))
     df_scores = pd.DataFrame.from_records(phrase_scores, columns=("word", "valence", "arousal", "dominance"))
+    old_scores = pd.Series(original_scores)
+    df_scores["single_words"] = old_scores.values
     return df_scores
 
 def new_format_tags(tagged_texts):
