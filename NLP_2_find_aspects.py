@@ -269,9 +269,9 @@ def main(df_part, name, zipped_scores):
     save_file(df_vad_scores, vad_score_name)
 
     # Extra step to find sentence structures
-    most_common_sentences = pd.DataFrame()
-    most_common_sentences["sentences"] = find_sentence_structures(df)
-    save_file(most_common_sentences, name + "_common_senteces")
+    # most_common_sentences = pd.DataFrame()
+    # most_common_sentences["sentences"] = find_sentence_structures(df)
+    # save_file(most_common_sentences, name + "_common_senteces")
 
 
 def return_sys_arguments(args):
