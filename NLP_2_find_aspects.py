@@ -242,9 +242,18 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
             dominance.append(d)
         for word, v, a, d in (new_adjectives[i]):
             if word not in SKIPPED_WORDS:
-                valence.append(v)
-                arousal.append(a)
-                dominance.append(d)
+                if v < 4 or v > 6:
+                    valence.append(v)
+                    arousal.append(a)
+                    dominance.append(d)
+                elif a < 4 or a > 6:
+                    valence.append(v)
+                    arousal.append(a)
+                    dominance.append(d)
+                elif d < 4 or d > 6:
+                    valence.append(v)
+                    arousal.append(a)
+                    dominance.append(d)
         new_string = ' '.join(new_word).lower()
         new_valence = float(format(sum(valence)/len(valence), '.2f'))
         new_arousal = float(format(sum(arousal)/len(arousal), '.2f'))
