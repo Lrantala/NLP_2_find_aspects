@@ -74,6 +74,7 @@ def new_find_noun_phrases(raw_list):
                                 if x1 == word1[1] and x2 == word2[1] and x3 == word3[1] and x4 == word4[1]:
                                     list_of_grouped_words.append((word1, word2, word3, word4))
                                     inclusion_check = True
+                                    list_of_single_words = find_related_opinion_words(i, i + 5, sentence)
                                     list_of_noun_phrases.append(list_of_grouped_words)
                                     original_phrase_list.append(raw_list["text"][j])
                                     original_lemmas_list.append(raw_list["formatted"][j])
@@ -241,10 +242,11 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
             arousal.append(a)
             dominance.append(d)
         for word, v, a, d in (new_adjectives[i]):
-            logging.debug(str(phrase) + " " + str(word))
-            valence.append(v)
-            arousal.append(a)
-            dominance.append(d)
+            if word != "None":
+                logging.debug(str(phrase) + " " + str(word))
+                valence.append(v)
+                arousal.append(a)
+                dominance.append(d)
         new_string = ' '.join(new_word).lower()
         new_valence = float(format(sum(valence)/len(valence), '.2f'))
         new_arousal = float(format(sum(arousal)/len(arousal), '.2f'))
