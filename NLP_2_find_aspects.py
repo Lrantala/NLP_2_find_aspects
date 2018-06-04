@@ -15,6 +15,7 @@ NOUNS = ["NN", "NNP", "NNPS", "NNS"]
 ADVERBS = ["RB", "RBR", "RBS"]
 VERBS = ["VB", "VBD", "VBG", "VBN", "VBN", "VBP", "VBZ"]
 ADJECTIVE_PHRASES = [("RB"),("JJ"), ("RB", "RB", "JJ")]
+SKIPPED_WORDS = ["None", "be"]
 
 
 def open_file(file, type):
@@ -146,8 +147,6 @@ def new_find_noun_phrases(raw_list):
 def find_related_opinion_words(before_phrase, after_phrase, sentence):
     list_of_opinion_words = []
     counter = 0
-    print("Length: %s, sentence length: %s" % (str(after_phrase), len(sentence)))
-    print("Difference in length: %s" % (len(sentence) - after_phrase))
     while after_phrase < len(sentence):
         if sentence[after_phrase][1] in ADJECTIVES + VERBS + ADVERBS:
             list_of_opinion_words.append(sentence[after_phrase])
@@ -242,8 +241,7 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
             arousal.append(a)
             dominance.append(d)
         for word, v, a, d in (new_adjectives[i]):
-            if word != "None":
-                logging.debug(str(phrase) + " " + str(word))
+            if word not in SKIPPED_WORDS:
                 valence.append(v)
                 arousal.append(a)
                 dominance.append(d)
