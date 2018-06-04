@@ -86,7 +86,7 @@ def new_find_noun_phrases(raw_list):
                                 inclusion_check = True
                                 # This part starts checking if the noun phrase is followed by
                                 # a verb and then adjective.
-                                list_of_single_words = find_related_opinion_words(i + 4, sentence)
+                                list_of_single_words = find_related_opinion_words(i, i + 4, sentence)
 
                     if i+2 >= len(sentence):
                         inclusion_check = False
@@ -96,12 +96,12 @@ def new_find_noun_phrases(raw_list):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
-                                list_of_single_words = find_related_opinion_words(i + 3, sentence)
+                                list_of_single_words = find_related_opinion_words(i, i + 3, sentence)
                     elif not any(previous_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
-                                list_of_single_words = find_related_opinion_words(i + 3, sentence)
+                                list_of_single_words = find_related_opinion_words(i, i + 3, sentence)
                     else:
                         previous_word = None
         # This creates every sentence as its own list of lists
@@ -122,18 +122,25 @@ def new_find_noun_phrases(raw_list):
     return list_of_noun_phrases, phrases_and_lemmas
 
 
-def find_related_opinion_words(length, sentence):
+def find_related_opinion_words(before_phrase, after_phrase, sentence):
     list_of_opinion_words = []
-    print("Length: %s, sentence length: %s" % (str(length), len(sentence)))
-    print("Difference in length: %s" % (len(sentence) - length))
-    while length < len(sentence):
-        if sentence[length][1] in ADJECTIVES:
-            list_of_opinion_words.append(sentence[length])
-        length += 1
+    counter = 0
+    print("Length: %s, sentence length: %s" % (str(after_phrase), len(sentence)))
+    print("Difference in length: %s" % (len(sentence) - after_phrase))
+    while after_phrase < len(sentence):
+        if sentence[after_phrase][1] in ADJECTIVES + VERBS + ADVERBS:
+            list_of_opinion_words.append(sentence[after_phrase])
+        after_phrase += 1
+
+    while counter < before_phrase:
+        if sentence[counter][1] in ADJECTIVES + VERBS + ADVERBS:
+            list_of_opinion_words.append(sentence[counter])
+        counter += 1
+
     if len(list_of_opinion_words) != 0:
         return list_of_opinion_words
     else:
-        return "None"
+        return [("None", "None")]
 
     # old code
     # if (length < len(sentence)):
@@ -270,17 +277,21 @@ def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
         reconstructed_sentences.append(sentence)
     original_sentences["reconstructed"] = pd.Series(reconstructed_sentences)
 
-    temporary_list = []
+    original_temporary_list = []
+    original_adjective_list = []
     lower_case_list = [x.lower() for x in original_sentences["original_text"]]
     for x in df_vad_scores["word"]:
         inclusion = False
         if not inclusion:
             for i, sentence in enumerate(original_sentences["reconstructed"]):
                 if (x in sentence) and not inclusion:
-                    temporary_list.append(original_sentences["original_text"][i])
+                    original_temporary_list.append(original_sentences["original_text"][i])
+                    original_adjective_list.append(original_sentences["related_opinion_words"][i])
                     inclusion = True
                     break
-    set1 = pd.Series(temporary_list)
+    set1 = pd.Series(original_temporary_list)
+    set2 = pd.Series(original_adjective_list)
+    df_vad_scores["other_opinion_words"] = set2.values
     df_vad_scores["sentence"] = set1.values
     return df_vad_scores
 
@@ -302,7 +313,7 @@ def main(df_part, name, zipped_scores):
 
     short_nouns = noun_phrases
     vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
-    vad_adjectives = assign_vad_scores_for_adjectives(original_phrases["related_opinion_words"], zipped_scores)
+    original_phrases["related_opinion_words"] = assign_vad_scores_for_adjectives(original_phrases["related_opinion_words"], zipped_scores)
 
     df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
     df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
