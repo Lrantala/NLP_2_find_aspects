@@ -286,37 +286,6 @@ def new_format_tags(tagged_texts):
     return formatted_list_by_sentence
 
 
-def find_original_sentence_for_vad_scores(df_vad_scores, original_sentences):
-    logging.debug("Entering find original sentence for vad scores")
-    # old code
-    reconstructed_sentences = []
-    for phrase in original_sentences["original_lemmas"]:
-        new_words = []
-        for word in phrase:
-            new_words.append(word[0])
-        sentence = ' '.join(new_words)
-        reconstructed_sentences.append(sentence)
-    original_sentences["reconstructed"] = pd.Series(reconstructed_sentences)
-
-    original_temporary_list = []
-    original_adjective_list = []
-    lower_case_list = [x.lower() for x in original_sentences["original_text"]]
-    for x in df_vad_scores["word"]:
-        inclusion = False
-        if not inclusion:
-            for i, sentence in enumerate(original_sentences["reconstructed"]):
-                if (x in sentence) and not inclusion:
-                    original_temporary_list.append(original_sentences["original_text"][i])
-                    original_adjective_list.append(original_sentences["related_opinion_words"][i])
-                    inclusion = True
-                    break
-    set1 = pd.Series(original_temporary_list)
-    set2 = pd.Series(original_adjective_list)
-    df_vad_scores["other_opinion_words"] = set2.values
-    df_vad_scores["sentence"] = set1.values
-    return df_vad_scores
-
-
 def read_folder_contents(path_to_files):
     filelist = os.listdir(path_to_files)
     return filelist
@@ -334,7 +303,6 @@ def main(df_part, name, zipped_scores):
     new_df["related_opinion_words"] = assign_vad_scores_for_adjectives(new_df["related_opinion_words"], zipped_scores)
     new_df["vad_scores_phrases"] = assign_vad_scores(new_df["noun_phrases_tags"], zipped_scores)
     df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related_opinion_words"])
-    # df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
     result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
     vad_score_name = name + "_vad_scores"
     save_file(result, vad_score_name)
