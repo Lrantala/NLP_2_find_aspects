@@ -74,6 +74,12 @@ def new_find_noun_phrases(raw_list):
                                 if x1 == word1[1] and x2 == word2[1] and x3 == word3[1] and x4 == word4[1]:
                                     list_of_grouped_words.append((word1, word2, word3, word4))
                                     inclusion_check = True
+                                    list_of_noun_phrases.append(list_of_grouped_words)
+                                    original_phrase_list.append(raw_list["text"][j])
+                                    original_lemmas_list.append(raw_list["formatted"][j])
+                                    related_opinion_words.append(list_of_single_words)
+                                list_of_grouped_words = []
+
                     if i + 3 >= len(sentence):
                         inclusion_check = False
                     # This part checks for tri-grams
@@ -87,6 +93,11 @@ def new_find_noun_phrases(raw_list):
                                 # This part starts checking if the noun phrase is followed by
                                 # a verb and then adjective.
                                 list_of_single_words = find_related_opinion_words(i, i + 4, sentence)
+                                list_of_noun_phrases.append(list_of_grouped_words)
+                                original_phrase_list.append(raw_list["text"][j])
+                                original_lemmas_list.append(raw_list["formatted"][j])
+                                related_opinion_words.append(list_of_single_words)
+                            list_of_grouped_words = []
 
                     if i+2 >= len(sentence):
                         inclusion_check = False
@@ -97,29 +108,38 @@ def new_find_noun_phrases(raw_list):
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
                                 list_of_single_words = find_related_opinion_words(i, i + 3, sentence)
+                                list_of_noun_phrases.append(list_of_grouped_words)
+                                original_phrase_list.append(raw_list["text"][j])
+                                original_lemmas_list.append(raw_list["formatted"][j])
+                                related_opinion_words.append(list_of_single_words)
+                            list_of_grouped_words = []
+
                     elif not any(previous_word[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         for x1, x2 in COMBINATIONS2:
                             if x1 == word1[1] and x2 == word2[1]:
                                 list_of_grouped_words.append((word1, word2))
                                 list_of_single_words = find_related_opinion_words(i, i + 3, sentence)
+                                list_of_noun_phrases.append(list_of_grouped_words)
+                                original_phrase_list.append(raw_list["text"][j])
+                                original_lemmas_list.append(raw_list["formatted"][j])
+                                related_opinion_words.append(list_of_single_words)
+                            list_of_grouped_words = []
                     else:
                         previous_word = None
         # This creates every sentence as its own list of lists
-        if len(list_of_grouped_words) != 0:
-            list_of_noun_phrases.append(list_of_grouped_words)
-            # New code
-            original_phrase_list.append(raw_list["text"][j])
-            original_lemmas_list.append(raw_list["formatted"][j])
-            related_opinion_words.append(list_of_single_words)
-            # old code
-            # original_phrase_list.append(sentence)
-        list_of_grouped_words = []
+        # if len(list_of_grouped_words) != 0:
+        #     list_of_noun_phrases.append(list_of_grouped_words)
+        #     original_phrase_list.append(raw_list["text"][j])
+        #     original_lemmas_list.append(raw_list["formatted"][j])
+        #     related_opinion_words.append(list_of_single_words)
+        # list_of_grouped_words = []
     # This returns a list, where every noun is its own list
     phrases_and_lemmas = pd.DataFrame()
     phrases_and_lemmas["related_opinion_words"] = pd.Series(related_opinion_words)
+    phrases_and_lemmas["noun_phrases_tags"] = pd.Series(list_of_noun_phrases)
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
-    return list_of_noun_phrases, phrases_and_lemmas
+    return phrases_and_lemmas
 
 
 def find_related_opinion_words(before_phrase, after_phrase, sentence):
@@ -141,14 +161,6 @@ def find_related_opinion_words(before_phrase, after_phrase, sentence):
         return list_of_opinion_words
     else:
         return [("None", "None")]
-
-    # old code
-    # if (length < len(sentence)):
-    #     word_verb = sentence[length - 1]
-    #     if (word_verb[1] in VERBS):
-    #         word_after_verb = sentence[length]
-    #         # if word_after_verb[1] in ADJECTIVES:
-    #         print("verb: %s, %s" % (word_verb[0], word_after_verb[0]))
 
 
 def find_sentence_structures(raw_list):
@@ -229,6 +241,7 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
             arousal.append(a)
             dominance.append(d)
         for word, v, a, d in (new_adjectives[i]):
+            logging.debug(str(phrase) + " " + str(word))
             valence.append(v)
             arousal.append(a)
             dominance.append(d)
@@ -238,7 +251,7 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
         new_dominance = float(format(sum(dominance)/len(dominance), '.2f'))
         original_scores.append(phrase)
         phrase_scores.append((new_string, str(new_valence), str(new_arousal), str(new_dominance)))
-    df_scores = pd.DataFrame.from_records(phrase_scores, columns=("word", "valence", "arousal", "dominance"))
+    df_scores = pd.DataFrame.from_records(phrase_scores, columns=("clean_phrase", "valence", "arousal", "dominance"))
     old_scores = pd.Series(original_scores)
     df_scores["single_words"] = old_scores.values
     return df_scores
@@ -316,14 +329,15 @@ def main(df_part, name, zipped_scores):
     # This creates a new column, where the tags are shortened to basic forms.
     tagged_texts = df["lemma_tag_dep"]
     df["formatted"] = new_format_tags(tagged_texts)
-    noun_phrases, original_phrases = new_find_noun_phrases(df)
+    new_df = new_find_noun_phrases(df)
     # combined = (list(zip(original_phrases, noun_phrases)))
-    original_phrases["related_opinion_words"] = assign_vad_scores_for_adjectives(original_phrases["related_opinion_words"], zipped_scores)
-    vad_scores_phrases = assign_vad_scores(noun_phrases, zipped_scores)
-    df_vad_scores = calculate_new_vad_scores_for_phrases(vad_scores_phrases, original_phrases["related_opinion_words"])
-    df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
+    new_df["related_opinion_words"] = assign_vad_scores_for_adjectives(new_df["related_opinion_words"], zipped_scores)
+    new_df["vad_scores_phrases"] = assign_vad_scores(new_df["noun_phrases_tags"], zipped_scores)
+    df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related_opinion_words"])
+    # df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
+    result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
     vad_score_name = name + "_vad_scores"
-    save_file(df_vad_scores, vad_score_name)
+    save_file(result, vad_score_name)
 
     # Extra step to find sentence structures
     # most_common_sentences = pd.DataFrame()
