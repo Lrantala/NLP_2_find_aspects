@@ -212,17 +212,23 @@ def assign_vad_scores_for_adjectives(adjectives, score_list):
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
-def calculate_new_vad_scores(noun_phrases):
+def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
     logging.debug("Entering calculate new vad scores")
     phrase_scores = []
     original_scores = []
-    for phrase in noun_phrases:
+    new_adjectives = pd.Series.tolist(adjectives)
+    for i, phrase in enumerate(noun_phrases):
         new_word = []
         valence = []
         arousal = []
         dominance = []
+        adjectives = []
         for word, v, a, d in phrase:
             new_word.append(word)
+            valence.append(v)
+            arousal.append(a)
+            dominance.append(d)
+        for word, v, a, d in (new_adjectives[i]):
             valence.append(v)
             arousal.append(a)
             dominance.append(d)
@@ -236,6 +242,8 @@ def calculate_new_vad_scores(noun_phrases):
     old_scores = pd.Series(original_scores)
     df_scores["single_words"] = old_scores.values
     return df_scores
+
+
 
 def new_format_tags(tagged_texts):
     logging.debug("Entering format tags")
@@ -310,12 +318,9 @@ def main(df_part, name, zipped_scores):
     df["formatted"] = new_format_tags(tagged_texts)
     noun_phrases, original_phrases = new_find_noun_phrases(df)
     # combined = (list(zip(original_phrases, noun_phrases)))
-
-    short_nouns = noun_phrases
-    vad_scores_phrases = assign_vad_scores(short_nouns, zipped_scores)
     original_phrases["related_opinion_words"] = assign_vad_scores_for_adjectives(original_phrases["related_opinion_words"], zipped_scores)
-
-    df_vad_scores = calculate_new_vad_scores(vad_scores_phrases)
+    vad_scores_phrases = assign_vad_scores(noun_phrases, zipped_scores)
+    df_vad_scores = calculate_new_vad_scores_for_phrases(vad_scores_phrases, original_phrases["related_opinion_words"])
     df_vad_scores = find_original_sentence_for_vad_scores(df_vad_scores, original_phrases)
     vad_score_name = name + "_vad_scores"
     save_file(df_vad_scores, vad_score_name)
