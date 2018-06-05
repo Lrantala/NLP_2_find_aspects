@@ -163,17 +163,17 @@ def find_related_opinion_words(before_phrase, after_phrase, sentence):
 
 def separate_individual_words(df):
     individual_words = df["noun_phrases_tags"]
+    individual_scores = df["vad_scores_phrases"]
     single_aspect_words = []
     single_opinion_words = []
     list_of_aspects = []
     list_of_opinion = []
-    for phrase in individual_words:
-        for pairs in phrase:
-            for word in pairs:
-                if word[1] in ADJECTIVES + ADVERBS:
-                    single_opinion_words.append(word)
-                elif word[1] in NOUNS:
-                    single_aspect_words.append(word)
+    for i, phrase in enumerate(individual_words):
+        for j, word in enumerate(*phrase):
+            if word[1] in ADJECTIVES + ADVERBS:
+                single_opinion_words.append(individual_scores[i][j])
+            elif word[1] in NOUNS:
+                single_aspect_words.append(individual_scores[i][j])
         list_of_aspects.append(single_aspect_words)
         list_of_opinion.append(single_opinion_words)
         single_aspect_words = []
@@ -181,6 +181,7 @@ def separate_individual_words(df):
     df["aspect_words"] = pd.Series(list_of_aspects)
     df["opinion_words"] = pd.Series(list_of_opinion)
     return df
+
 
 def find_sentence_structures(raw_list):
     logging.debug("Entering find sentence structures.")
@@ -330,9 +331,9 @@ def main(df_part, name, zipped_scores):
     new_df["related_opinion_words"] = assign_vad_scores_for_adjectives(new_df["related_opinion_words"], zipped_scores)
     new_df["vad_scores_phrases"] = assign_vad_scores(new_df["noun_phrases_tags"], zipped_scores)
     df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related_opinion_words"])
-    new_df = separate_individual_words(new_df)
     result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
-    # result = result[['clean_phrase', 'aspect_words', 'opinion_words', 'original_text']]
+    result = separate_individual_words(result)
+    result = result[['clean_phrase', 'valence', 'arousal', 'dominance', 'aspect_words', 'opinion_words', 'related_opinion_words', 'original_text', 'original_lemmas']]
     vad_score_name = name + "_vad_scores"
     save_file(result, vad_score_name)
 
