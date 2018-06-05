@@ -151,17 +151,36 @@ def find_related_opinion_words(before_phrase, after_phrase, sentence):
         if sentence[after_phrase][1] in ADJECTIVES + VERBS + ADVERBS:
             list_of_opinion_words.append(sentence[after_phrase])
         after_phrase += 1
-
     while counter < before_phrase:
         if sentence[counter][1] in ADJECTIVES + VERBS + ADVERBS:
             list_of_opinion_words.append(sentence[counter])
         counter += 1
-
     if len(list_of_opinion_words) != 0:
         return list_of_opinion_words
     else:
         return [("None", "None")]
 
+
+def separate_individual_words(df):
+    individual_words = df["noun_phrases_tags"]
+    single_aspect_words = []
+    single_opinion_words = []
+    list_of_aspects = []
+    list_of_opinion = []
+    for phrase in individual_words:
+        for pairs in phrase:
+            for word in pairs:
+                if word[1] in ADJECTIVES + ADVERBS:
+                    single_opinion_words.append(word)
+                elif word[1] in NOUNS:
+                    single_aspect_words.append(word)
+        list_of_aspects.append(single_aspect_words)
+        list_of_opinion.append(single_opinion_words)
+        single_aspect_words = []
+        single_opinion_words = []
+    df["aspect_words"] = pd.Series(list_of_aspects)
+    df["opinion_words"] = pd.Series(list_of_opinion)
+    return df
 
 def find_sentence_structures(raw_list):
     logging.debug("Entering find sentence structures.")
@@ -266,7 +285,6 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
     return df_scores
 
 
-
 def new_format_tags(tagged_texts):
     logging.debug("Entering format tags")
     formatted_list = []
@@ -312,7 +330,9 @@ def main(df_part, name, zipped_scores):
     new_df["related_opinion_words"] = assign_vad_scores_for_adjectives(new_df["related_opinion_words"], zipped_scores)
     new_df["vad_scores_phrases"] = assign_vad_scores(new_df["noun_phrases_tags"], zipped_scores)
     df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related_opinion_words"])
+    new_df = separate_individual_words(new_df)
     result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
+    # result = result[['clean_phrase', 'aspect_words', 'opinion_words', 'original_text']]
     vad_score_name = name + "_vad_scores"
     save_file(result, vad_score_name)
 
