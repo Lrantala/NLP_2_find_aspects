@@ -165,19 +165,27 @@ def find_related_opinion_words(before_phrase, after_phrase, sentence):
         return [("None", "None")]
 
 
-def separate_individual_words(df):
+def separate_individual_words(df, withscores):
     individual_words = df["noun_phrases_tags"]
-    individual_scores = df["vad_scores_phrases"]
+    if withscores:
+        individual_scores = df["vad_scores_phrases"]
     single_aspect_words = []
     single_opinion_words = []
     list_of_aspects = []
     list_of_opinion = []
     for i, phrase in enumerate(individual_words):
-        for j, word in enumerate(*phrase):
-            if word[1] in ADJECTIVES + ADVERBS:
-                single_opinion_words.append(individual_scores[i][j])
-            elif word[1] in NOUNS:
-                single_aspect_words.append(individual_scores[i][j])
+        if withscores:
+            for j, word in enumerate(*phrase):
+                if word[1] in ADJECTIVES + ADVERBS:
+                    single_opinion_words.append(individual_scores[i][j])
+                elif word[1] in NOUNS:
+                    single_aspect_words.append(individual_scores[i][j])
+        else:
+            for j, word in enumerate(*phrase):
+                if word[1] in ADJECTIVES + ADVERBS:
+                    single_opinion_words.append(word)
+                elif word[1] in NOUNS:
+                    single_aspect_words.append(word)
         list_of_aspects.append(single_aspect_words)
         list_of_opinion.append(single_opinion_words)
         single_aspect_words = []
@@ -355,12 +363,25 @@ def main(df_part, name, zipped_scores):
     tagged_texts = df["lemma_tag_dep"]
     df["formatted"] = new_format_tags(tagged_texts)
     new_df = new_find_noun_phrases(df)
-    # combined = (list(zip(original_phrases, noun_phrases)))
+
+    # This part is used to save a file, that does not have
+    # any scores in it.
+    noscoredf = new_df
+    noscoredf = separate_individual_words(new_df, False)
+    noscoredf = noscoredf[
+        ['aspect_words', 'opinion_words', 'related_opinion_words',
+         'original_text', 'original_lemmas']]
+    noscorename = name + "_no_scores"
+    save_file(noscoredf, noscorename)
+    del noscoredf
+
+    # This part includes the retrieval and calculations of
+    # VAD scores for noun phrases.
     new_df["related_opinion_words"] = assign_vad_scores_for_adjectives(new_df["related_opinion_words"], zipped_scores)
     new_df["vad_scores_phrases"] = assign_vad_scores(new_df["noun_phrases_tags"], zipped_scores)
     df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related_opinion_words"])
     result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
-    result = separate_individual_words(result)
+    result = separate_individual_words(result, True)
     result = result[['clean_phrase', 'valence', 'arousal', 'dominance', 'aspect_words', 'opinion_words', 'related_opinion_words', 'original_text', 'original_lemmas']]
     vad_score_name = name + "_vad_scores"
     save_file(result, vad_score_name)
