@@ -6,6 +6,7 @@ import logging
 import csv
 import os
 import sys
+from timeit import default_timer as timer
 
 COMBINATIONS4 = [("JJ", "NN","NN", "NN"),("RB", "JJ","NN", "NN"),("JJ", "JJ","NN", "NN"),("RB","JJ","JJ","NN"),("JJ","CC", "JJ", "NN")]
 COMBINATIONS3 = [("NN","NN", "NN"),("JJ","NN", "NN"),("RB","JJ","NN"),("JJ","JJ", "NN"), ("NN", "CC", "NN")]
@@ -46,6 +47,7 @@ def save_file(file, name):
 
 def new_find_noun_phrases(raw_list):
     logging.debug("Entering find noun phrases")
+    start = timer()
     # old code
     # original_phrase_list = []
     # new code
@@ -141,6 +143,8 @@ def new_find_noun_phrases(raw_list):
     phrases_and_lemmas["noun_phrases_tags"] = pd.Series(list_of_noun_phrases)
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
+    end = timer()
+    logging.debug("Time: %.2f seconds" % (end - start))
     return phrases_and_lemmas
 
 
@@ -198,54 +202,73 @@ def find_sentence_structures(raw_list):
 
 
 def assign_vad_scores(noun_phrases, score_list):
+    start = timer()
     logging.debug("Entering assign vad scores")
     phrase_scores = []
     all_scores = []
+    short_warriner_scores = []
     for x in noun_phrases:
         count_chunks = 0
         for phrase in x:
             i = 0
             while i < len(phrase):
                 # The way to access the word in the list is through phrase[i][0]
-                score = [item for item in score_list if phrase[i][0] in item]
+                score = [item for item in short_warriner_scores if phrase[i][0] in item]
+                if not score:
+                    score = [item for item in score_list if phrase[i][0] in item]
+                    if score:
+                        short_warriner_scores.append(*score)
                 if len(score) != 0:
                     # The * ensures that only the list contents from score are returned
                     phrase_scores.append(*score)
                 else:
                     phrase_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
+                    short_warriner_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
                 i += 1
             if len(phrase_scores) != 0:
                 all_scores.append(phrase_scores)
             phrase_scores = []
+    end = timer ()
+    logging.debug("Time: %.2f seconds" % (end - start))
     return all_scores
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
 
 def assign_vad_scores_for_adjectives(adjectives, score_list):
+    start = timer()
     logging.debug("Entering assign vad scores for adjectives.")
     adjective_scores = []
     all_scores = []
+    short_warriner_scores = []
     for phrase in adjectives:
         i = 0
         while i < len(phrase):
             # The way to access the word in the list is through phrase[i][0]
-            score = [item for item in score_list if phrase[i][0] in item]
+            score = [item for item in short_warriner_scores if phrase[i][0] in item]
+            if not score:
+                score = [item for item in score_list if phrase[i][0] in item]
+                if score:
+                    short_warriner_scores.append(*score)
             if len(score) != 0:
                 # The * ensures that only the list contents from score are returned
                 adjective_scores.append(*score)
             else:
                 adjective_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
+                short_warriner_scores.append((phrase[i][0], 5.00, 5.00, 5.00))
             i += 1
         if len(adjective_scores) != 0:
             all_scores.append(adjective_scores)
         adjective_scores = []
+    end = timer()
+    logging.debug("Time: %.2f seconds" % (end - start))
     return all_scores
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
 def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
     logging.debug("Entering calculate new vad scores")
+    start = timer()
     phrase_scores = []
     original_scores = []
     new_adjectives = pd.Series.tolist(adjectives)
@@ -283,11 +306,14 @@ def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
     df_scores = pd.DataFrame.from_records(phrase_scores, columns=("clean_phrase", "valence", "arousal", "dominance"))
     old_scores = pd.Series(original_scores)
     df_scores["single_words"] = old_scores.values
+    end = timer()
+    logging.debug("Time: %.2f seconds" % (end - start))
     return df_scores
 
 
 def new_format_tags(tagged_texts):
     logging.debug("Entering format tags")
+    start = timer()
     formatted_list = []
     formatted_list_by_sentence = []
     for sentence in tagged_texts:
@@ -311,6 +337,8 @@ def new_format_tags(tagged_texts):
         # This creates every sentence as its own list of tuples
         formatted_list_by_sentence.append(formatted_list)
         formatted_list = []
+    end = timer()
+    logging.debug("Time: %.2f seconds" % (end - start))
     return formatted_list_by_sentence
 
 
