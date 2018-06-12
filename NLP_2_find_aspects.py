@@ -8,8 +8,9 @@ import os
 import sys
 from timeit import default_timer as timer
 
+COMBINATIONS5 = [("JJ", "JJ", "NN","NN", "NN"),("RB", "JJ","NN", "NN", "NN"),("JJ", "JJ","NN", "NN", "NN"),("RB","JJ","JJ","NN", "NN"),("JJ","CC", "JJ", "NN", "NN")]
 COMBINATIONS4 = [("JJ", "NN","NN", "NN"),("RB", "JJ","NN", "NN"),("JJ", "JJ","NN", "NN"),("RB","JJ","JJ","NN"),("JJ","CC", "JJ", "NN")]
-COMBINATIONS3 = [("NN","NN", "NN"),("JJ","NN", "NN"),("RB","JJ","NN"),("JJ","JJ", "NN"), ("NN", "CC", "NN")]
+COMBINATIONS3 = [("NN","NN", "NN"),("JJ","NN", "NN"),("RB","JJ","NN"),("JJ","JJ", "NN")]
 COMBINATIONS2 = [("NN", "NN"), ("JJ", "NN")]
 ADJECTIVES = ["JJ", "JJR", "JJS"]
 NOUNS = ["NN", "NNP", "NNPS", "NNS"]
@@ -68,6 +69,25 @@ def new_find_noun_phrases(raw_list):
                 word1 = sentence[i]
                 if any(word1[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                     word2 = sentence[i+1]
+                    # This checks for 5-grams
+                    if any(word2[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
+                        if i + 4 < len(sentence):
+                            word3 = sentence[i + 2]
+                            word4 = sentence[i + 3]
+                            word5 = sentence[i + 4]
+                            for x1, x2, x3, x4, x5 in COMBINATIONS5:
+                                if x1 == word1[1] and x2 == word2[1] and x3 == word3[1] and x4 == word4[1] and x5 == word5[1]:
+                                    list_of_grouped_words.append((word1, word2, word3, word4, word5))
+                                    inclusion_check = True
+                                    list_of_single_words = find_related_opinion_words(i, i + 6, sentence)
+                                    list_of_noun_phrases.append(list_of_grouped_words)
+                                    original_phrase_list.append(raw_list["text"][j])
+                                    original_lemmas_list.append(raw_list["formatted"][j])
+                                    related_opinion_words.append(list_of_single_words)
+                                list_of_grouped_words = []
+
+                    if i + 4 >= len(sentence):
+                        inclusion_check = False
                 # This part checks for quadro-grams
                     if any(word2[1] in wrd for wrd in ADJECTIVES + NOUNS + ADVERBS):
                         if i + 3 < len(sentence):
@@ -139,7 +159,7 @@ def new_find_noun_phrases(raw_list):
         # list_of_grouped_words = []
     # This returns a list, where every noun is its own list
     phrases_and_lemmas = pd.DataFrame()
-    phrases_and_lemmas["related_opinion_words"] = pd.Series(related_opinion_words)
+    phrases_and_lemmas["related"] = pd.Series(related_opinion_words)
     phrases_and_lemmas["noun_phrases_tags"] = pd.Series(list_of_noun_phrases)
     phrases_and_lemmas["original_text"] = pd.Series(original_phrase_list)
     phrases_and_lemmas["original_lemmas"] = pd.Series(original_lemmas_list)
@@ -190,8 +210,8 @@ def separate_individual_words(df, withscores):
         list_of_opinion.append(single_opinion_words)
         single_aspect_words = []
         single_opinion_words = []
-    df["aspect_words"] = pd.Series(list_of_aspects)
-    df["opinion_words"] = pd.Series(list_of_opinion)
+    df["aspect"] = pd.Series(list_of_aspects)
+    df["opinion"] = pd.Series(list_of_opinion)
     return df
 
 
@@ -350,9 +370,51 @@ def new_format_tags(tagged_texts):
     return formatted_list_by_sentence
 
 
+def refactor_scores_for_R(result, column):
+    individual_words = result[column]
+    single_aspect_words = []
+    single_aspect_scores = []
+    single_aspect_v= []
+    single_aspect_a = []
+    single_aspect_d = []
+    list_of_aspects = []
+    list_of_v = []
+    list_of_a = []
+    list_of_d = []
+
+    for phrase in individual_words:
+        for word in phrase:
+            single_aspect_words.append(word[0])
+            single_aspect_v.append(word[1])
+            single_aspect_a.append(word[2])
+            single_aspect_d.append(word[3])
+
+        list_of_aspects.append(single_aspect_words)
+        list_of_v.append(single_aspect_v)
+        list_of_a.append(single_aspect_a)
+        list_of_d.append(single_aspect_d)
+        single_aspect_words = []
+        single_aspect_v = []
+        single_aspect_a = []
+        single_aspect_d = []
+    result[column] = pd.Series(list_of_aspects)
+    result[column + "_v"] = pd.Series(list_of_v)
+    result[column + "_a"] = pd.Series(list_of_a)
+    result[column + "_d"] = pd.Series(list_of_d)
+    return result
+
+
+def return_sys_arguments(args):
+    if len(args) == 2:
+        return args[1]
+    else:
+        return None
+
+
 def read_folder_contents(path_to_files):
     filelist = os.listdir(path_to_files)
     return filelist
+
 
 def main(df_part, name, zipped_scores):
     logging.debug("Entering main")
@@ -369,7 +431,7 @@ def main(df_part, name, zipped_scores):
     noscoredf = new_df
     noscoredf = separate_individual_words(new_df, False)
     noscoredf = noscoredf[
-        ['aspect_words', 'opinion_words', 'related_opinion_words',
+        ['aspect', 'opinion', 'related',
          'original_text', 'original_lemmas']]
     noscorename = name + "_no_scores"
     save_file(noscoredf, noscorename)
@@ -377,12 +439,18 @@ def main(df_part, name, zipped_scores):
 
     # This part includes the retrieval and calculations of
     # VAD scores for noun phrases.
-    new_df["related_opinion_words"] = assign_vad_scores_for_adjectives(new_df["related_opinion_words"], zipped_scores)
+    new_df["related"] = assign_vad_scores_for_adjectives(new_df["related"], zipped_scores)
     new_df["vad_scores_phrases"] = assign_vad_scores(new_df["noun_phrases_tags"], zipped_scores)
-    df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related_opinion_words"])
+    df_vad_scores = calculate_new_vad_scores_for_phrases(new_df["vad_scores_phrases"], new_df["related"])
     result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
     result = separate_individual_words(result, True)
-    result = result[['clean_phrase', 'valence', 'arousal', 'dominance', 'aspect_words', 'opinion_words', 'related_opinion_words', 'original_text', 'original_lemmas']]
+    result_R = refactor_scores_for_R(result, "aspect")
+    result_R = refactor_scores_for_R(result, "opinion")
+    result_R = refactor_scores_for_R(result, "related")
+    result_R = result_R[
+        ['aspect', 'aspect_v', 'aspect_a', 'aspect_d', 'opinion', 'opinion_v', 'opinion_a', 'opinion_d','related', 'related_v', 'related_a', 'related_d', 'original_text', 'original_lemmas']]
+    save_file(result_R, name + "_VAD_R")
+    # result = result[['clean_phrase', 'valence', 'arousal', 'dominance', 'aspect_words', 'opinion_words', 'related_opinion_words', 'original_text', 'original_lemmas']]
     vad_score_name = name + "_vad_scores"
     save_file(result, vad_score_name)
 
@@ -390,13 +458,6 @@ def main(df_part, name, zipped_scores):
     # most_common_sentences = pd.DataFrame()
     # most_common_sentences["sentences"] = find_sentence_structures(df)
     # save_file(most_common_sentences, name + "_common_senteces")
-
-
-def return_sys_arguments(args):
-    if len(args) == 2:
-        return args[1]
-    else:
-        return None
 
 
 if __name__ == '__main__':
