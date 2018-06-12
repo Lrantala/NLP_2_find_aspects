@@ -17,6 +17,7 @@ NOUNS = ["NN", "NNP", "NNPS", "NNS"]
 ADVERBS = ["RB", "RBR", "RBS"]
 VERBS = ["VB", "VBD", "VBG", "VBN", "VBN", "VBP", "VBZ"]
 ADJECTIVE_PHRASES = [("RB"),("JJ"), ("RB", "RB", "JJ")]
+NEGATION_WORDS = ["not"]
 SKIPPED_WORDS = ["None", "be"]
 
 
@@ -172,11 +173,11 @@ def find_related_opinion_words(before_phrase, after_phrase, sentence):
     list_of_opinion_words = []
     counter = 0
     while after_phrase < len(sentence):
-        if sentence[after_phrase][1] in ADJECTIVES + VERBS + ADVERBS:
+        if (sentence[after_phrase][1] in ADJECTIVES + VERBS + ADVERBS or sentence[after_phrase][0] in NEGATION_WORDS):
             list_of_opinion_words.append(sentence[after_phrase])
         after_phrase += 1
     while counter < before_phrase:
-        if sentence[counter][1] in ADJECTIVES + VERBS + ADVERBS:
+        if (sentence[counter][1] in ADJECTIVES + VERBS + ADVERBS or sentence[counter][0] in NEGATION_WORDS):
             list_of_opinion_words.append(sentence[counter])
         counter += 1
     if len(list_of_opinion_words) != 0:
@@ -294,6 +295,7 @@ def assign_vad_scores_for_adjectives(adjectives, score_list):
     # The first number in the score list is the number of the word, the second one is [0]
     # for name, [1] for valence, [2] for arousal, [3] for dominance
 
+# This function is not used anymore in this part.
 def calculate_new_vad_scores_for_phrases(noun_phrases, adjectives):
     logging.debug("Entering calculate new vad scores")
     start = timer()
