@@ -191,28 +191,42 @@ def separate_individual_words(df, withscores):
     if withscores:
         individual_scores = df["vad_scores_phrases"]
     single_aspect_words = []
+    single_aspect_words_tags = []
     single_opinion_words = []
+    single_opinion_words_tags = []
     list_of_aspects = []
+    list_of_aspects_tags = []
+    list_of_opinion_tags = []
     list_of_opinion = []
     for i, phrase in enumerate(individual_words):
         if withscores:
             for j, word in enumerate(*phrase):
                 if word[1] in ADJECTIVES + ADVERBS:
                     single_opinion_words.append(individual_scores[i][j])
+                    single_opinion_words_tags.append(word)
                 elif word[1] in NOUNS:
                     single_aspect_words.append(individual_scores[i][j])
+                    single_aspect_words_tags.append(word)
         else:
             for j, word in enumerate(*phrase):
                 if word[1] in ADJECTIVES + ADVERBS:
                     single_opinion_words.append(word)
+                    single_opinion_words_tags.append(word)
                 elif word[1] in NOUNS:
                     single_aspect_words.append(word)
+                    single_aspect_words_tags.append(word)
         list_of_aspects.append(single_aspect_words)
+        list_of_aspects_tags.append(single_aspect_words_tags)
         list_of_opinion.append(single_opinion_words)
+        list_of_opinion_tags.append(single_opinion_words_tags)
         single_aspect_words = []
+        single_aspect_words_tags = []
         single_opinion_words = []
+        single_opinion_words_tags = []
     df["aspect"] = pd.Series(list_of_aspects)
+    df["aspect_tags"] = pd.Series(list_of_aspects_tags)
     df["opinion"] = pd.Series(list_of_opinion)
+    df["opinion_tags"] = pd.Series(list_of_opinion_tags)
     return df
 
 
@@ -447,10 +461,11 @@ def main(df_part, name, zipped_scores):
     result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
     result = separate_individual_words(result, True)
     result_R = refactor_scores_for_R(result, "aspect")
-    result_R = refactor_scores_for_R(result, "opinion")
-    result_R = refactor_scores_for_R(result, "related")
+    # These two were changed from result to result_R
+    result_R = refactor_scores_for_R(result_R, "opinion")
+    result_R = refactor_scores_for_R(result_R, "related")
     result_R = result_R[
-        ['aspect', 'aspect_v', 'aspect_a', 'aspect_d', 'opinion', 'opinion_v', 'opinion_a', 'opinion_d','related', 'related_v', 'related_a', 'related_d', 'original_text', 'original_lemmas']]
+        ['aspect', 'aspect_v', 'aspect_a', 'aspect_d', 'opinion', 'opinion_v', 'opinion_a', 'opinion_d','related', 'related_v', 'related_a', 'related_d', 'original_text', 'aspect_tags', 'opinion_tags','original_lemmas']]
     save_file(result_R, name + "_VAD_R")
     # result = result[['clean_phrase', 'valence', 'arousal', 'dominance', 'aspect_words', 'opinion_words', 'related_opinion_words', 'original_text', 'original_lemmas']]
     vad_score_name = name + "_vad_scores"
